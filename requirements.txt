@@ -1,0 +1,21 @@
+# PyTorch with CUDA
+--extra-index-url https://download.pytorch.org/whl/cu116
+torch
+torchvision
+torchaudio
+
+# PyTorch Lightning
+lightning
+
+# ML Logging/Weights and Biases
+wandb
+
+# PyHessian
+pyhessian
+
+# Config
+python-dotenv
+
+# Jupyter
+ipykernel
+
