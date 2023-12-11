@@ -5,7 +5,8 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# TODO: Add our own config here
+BASE_DATA_DIR=Path(os.getenv("BASE_DATA_DIR", "./data/"))
 
-# Example, remove this later
-DATA_DIR = Path(os.getenv("DATA_DIR", "./data"))
+NUM_WORKERS = int(os.getenv("NUM_WORKERS", 0))
+
+WANDB_PROJECT_NAME = os.getenv("WANDB_PROJECT_NAME", "Model Fusion")

@@ -1,43 +1,57 @@
-from typing import Dict, Callable
+from typing import Dict
 
 import lightning
+import torch
 import torch.nn as nn
 
 from model_fusion.models import ModelType
 
 
 class BaseModel(lightning.LightningModule):
-    """An abstract base class for all models."""
-    def __init__(self, model_type: ModelType, model_hparams: Dict, loss_module: nn.Module = nn.CrossEntropyLoss()):
+    """Base model for all models in this project"""
+    def __init__(self, model_type: ModelType, model_hparams: Dict, loss_module: nn.Module = nn.CrossEntropyLoss(), lr=1e-3, *args, **kwargs):
         super().__init__()
         # Exports the hyperparameters to a YAML file, and create "self.hparams" namespace
-        self.save_hyperparameters()
-        # Create model
-        self.model = model_type.get_model(**model_hparams)
-        # Create loss module
+        self.lr = lr
         self.loss_module = loss_module
-        # Example input for visualizing the graph in Tensorboard
+        self.save_hyperparameters()
+        self.model = model_type.get_model(**model_hparams)
 
     def forward(self, x):
-        # in lightning, forward defines the prediction/inference actions
-        raise NotImplementedError
+        """Forward pass, returns logits"""
+        x = self.model(x)
+        return x
 
-    def training_step(self, batch, batch_idx):
-        # training_step defines the train loop. It is independent of forward
-        raise NotImplementedError
+    def f_step(self, batch, batch_idx, train=True, *args, **kwargs):
+        """Forward step, returns loss and logits"""
+        x, y = batch
+        y_hat = self.forward(x)
+        loss = self.loss_module(y_hat, y)
 
-    def validation_step(self, batch, batch_idx):
-        # validation_step defines the train loop. It is independent of forward
-        raise NotImplementedError
+        metrics = {'loss': loss}
+        self.log_metrics(metrics, train)
+        return loss, y_hat
 
-    def test_step(self, batch, batch_idx):
-        # test_step defines the train loop. It is independent of forward
-        raise NotImplementedError
+    def training_step(self, batch, batch_idx, *args, **kwargs):
+        """Training step, returns loss"""
+        return self.f_step(batch, batch_idx, train=True, *args, **kwargs)[0]
+
+    def validation_step(self, batch, batch_idx, *args, **kwargs):
+        """Validation step, returns loss"""
+        return self.f_step(batch, batch_idx, train=False, *args, **kwargs)[0]
+
+    def test_step(self, batch, batch_idx, *args, **kwargs):
+        """Test step, returns loss"""
+        return self.f_step(batch, batch_idx, train=False, *args, **kwargs)[0]
 
     def configure_optimizers(self):
-        # REQUIRED
-        # can return multiple optimizers and learning_rate schedulers
-        raise NotImplementedError
+        """Configure optimizers"""
+        return torch.optim.Adam(self.parameters(), lr=1e-3)
+
+    def log_metrics(self, metrics, train, prog_bar=True):
+        prefix = "train_" if train else "val_"
+        metrics_prefixed = {prefix + str(key): val for key, val in metrics.items()}
+        self.log_dict(metrics_prefixed, prog_bar=prog_bar)
 
     @staticmethod
     def add_model_specific_args(parent_parser):  # pragma: no cover
