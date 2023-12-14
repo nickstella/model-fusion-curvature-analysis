@@ -1,0 +1,3 @@
+[submodule "otfusion"]
+	path = otfusion
+	url = git@github.com:sidak/otfusion.git
