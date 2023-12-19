@@ -5,3 +5,6 @@
 [submodule "pyhessian"]
 	path = pyhessian
 	url = git@github.com:amirgholami/PyHessian.git
+[submodule "PyHessian"]
+	path = PyHessian
+	url = https://github.com/amirgholami/PyHessian.git
