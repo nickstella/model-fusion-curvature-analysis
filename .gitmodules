@@ -2,6 +2,6 @@
 	path = otfusion
 	url = git@github.com:sidak/otfusion.git
 
-[submodule "PyHessian"]
-	path = PyHessian
+[submodule "pyhessian"]
+	path = pyhessian
 	url = https://github.com/amirgholami/PyHessian.git
