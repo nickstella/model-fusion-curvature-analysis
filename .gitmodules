@@ -4,4 +4,4 @@
 
 [submodule "pyhessian"]
 	path = pyhessian
-	url = https://github.com/amirgholami/PyHessian.git
+	url = https://github.com:amirgholami/PyHessian.git
