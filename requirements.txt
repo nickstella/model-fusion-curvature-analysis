@@ -4,8 +4,9 @@ torch
 torchvision
 torchaudio
 
-# PyTorch Lightning
+# Training and pre-built modules
 lightning
+lightning-bolts
 
 # ML Logging/Weights and Biases
 wandb
