@@ -165,5 +165,8 @@ data/
 # WandB logs
 wandb/
 
+# Lightning logs
+lightning_logs/
+
 # Checkpoints
 Model Fusion/
