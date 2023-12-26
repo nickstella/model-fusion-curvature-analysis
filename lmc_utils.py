@@ -74,16 +74,13 @@ def compute_loss(model,datamodule):
     return average_loss
 
 
-def compute_max_and_avg_loss(model1, model2, granularity = 20):
+def compute_max_and_avg_loss(model1, model2, datamodule1, granularity = 20):
     """
     Computes the maximum and average loss on the linear path among 2 parent networks
     """
     losses = []
     params1 = get_network_parameters(model1)
     params2 = get_network_parameters(model2)
-
-    print("params 1", params1[0][0][0])
-    print("params 2", params2[0][0][0])
 
     # Initialize the fused model as a copy of model1 
     fused_model = copy.deepcopy(model1)
