@@ -102,6 +102,26 @@ update_network_parameters(model1, combined_params)
 
 print("COMBINED RESULTS:")
 trainer1.test(model1, datamodule=datamodule1)
+model1.eval()
+
+# Initialize a variable to accumulate the training loss
+total_loss = 0.0
+
+# Iterate over the training data and compute predictions
+for batch in datamodule1.train_dataloader():
+    inputs, targets = batch
+
+    # Forward pass
+    predictions = model1(inputs)
+
+    # Compute the loss
+    loss = model1.loss_module(predictions, targets)
+    total_loss += loss.item()
+
+# Calculate the average training loss
+average_loss = total_loss / len(datamodule1.train_dataloader())
+print(f"Average training loss: {average_loss}")
+
 
 
 wandb.finish()
