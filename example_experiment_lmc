@@ -25,7 +25,7 @@ def run_experiment():
 
     max_loss, avg_loss = lmc.compute_max_and_avg_loss(model1,model2, datamodule1,granularity=5)
     error_barrier = max_loss - avg_loss
-    print(f"Max loss: {max_loss:.2f}, Average loss: {avg_loss:.2f}, Error barrier: {error_barrier:.2f}")
+    print(f"Max loss: {max_loss:.5f}, Average loss: {avg_loss:.5f}, Error barrier: {error_barrier:.5f}")
 
     trainer1.test(model1, datamodule=datamodule1)
     trainer2.test(model2, datamodule=datamodule2)
