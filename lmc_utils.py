@@ -1,5 +1,4 @@
 import wandb
-
 from model_fusion.train import setup_training
 from model_fusion.datasets import DataModuleType
 from model_fusion.models import ModelType
@@ -75,7 +74,7 @@ def compute_loss(model,datamodule):
     return average_loss
 
 
-def compute_max_and_avg_loss(model1, model2):
+def compute_max_and_avg_loss(model1, model2, granularity = 20):
     """
     Computes the maximum and average loss on the linear path among 2 parent networks
     """
@@ -89,7 +88,7 @@ def compute_max_and_avg_loss(model1, model2):
     # Initialize the fused model as a copy of model1 
     fused_model = copy.deepcopy(model1)
 
-    alphas = np.linspace(0, 1, 10)
+    alphas = np.linspace(0, 1, granularity)
 
     # Iterate over the linear path and compute the maximum loss
     for alpha in alphas:
@@ -110,30 +109,3 @@ def compute_max_and_avg_loss(model1, model2):
     average_loss = np.mean(losses)
 
     return max_loss, average_loss
-
-
-data_module_type = DataModuleType.MNIST
-
-#define two different batch size to discrimante among parents
-data_module_hparams1 = {'batch_size': 32}
-data_module_hparams2 = {'batch_size': 64}
-
-model_type = ModelType.RESNET18
-model_hparams = {'num_classes': 10, 'num_channels': 1}
-
-wandb_tags = ['example']
-
-model1, datamodule1, trainer1 = setup_training('example_experiment', model_type, model_hparams, data_module_type, data_module_hparams1, max_epochs=1, wandb_tags=wandb_tags)
-model2, datamodule2, trainer2 = setup_training('example_experiment', model_type, model_hparams, data_module_type, data_module_hparams2, max_epochs=1, wandb_tags=wandb_tags)
-
-#fit the parent models 
-trainer1.fit(model1, datamodule=datamodule1)
-trainer2.fit(model2, datamodule=datamodule2)
-
-#compute the max and average loss on the linear path
-max_loss, avg_loss = compute_max_and_avg_loss(model1, model2)
-print(f"Maximum loss: {max_loss:.2f}, Average loss: {avg_loss:.2f}")
-
-
-wandb.finish()
-
