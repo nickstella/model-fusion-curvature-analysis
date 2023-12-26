@@ -22,14 +22,15 @@ class BaseModel(lightning.LightningModule):
         x = self.model(x)
         return x
 
-    def f_step(self, batch, batch_idx, train=True, *args, **kwargs):
+    def f_step(self, batch, batch_idx, train=True,log_metrics=True, *args, **kwargs):
         """Forward step, returns loss and logits"""
         x, y = batch
         y_hat = self.forward(x)
         loss = self.loss_module(y_hat, y)
 
         metrics = {'loss': loss}
-        self.log_metrics(metrics, train)
+        if log_metrics:
+            self.log_metrics(metrics, train)
         return loss, y_hat
 
     def training_step(self, batch, batch_idx, *args, **kwargs):

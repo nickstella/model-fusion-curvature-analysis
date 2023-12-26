@@ -5,6 +5,7 @@ from model_fusion.models import ModelType
 import torch
 import numpy as np
 import copy
+import tqdm
 
 
 def get_network_parameters(model):
@@ -26,6 +27,14 @@ def get_network_parameters(model):
 def combine_parameters(params1, params2, alpha):
     """
     Combine two sets of parameters with a convex combination.
+
+    Args:
+        params1 (list): A list of parameter tensors.
+        params2 (list): A list of parameter tensors.
+        alpha (float): The convex combination weight.
+
+    Returns:
+        A list of parameter tensors.
     """
     combined_params = []
     for param1, param2 in zip(params1, params2):
@@ -53,20 +62,22 @@ def update_network_parameters(model, new_params):
         param.data.copy_(new_param)
 
 def compute_loss(model,datamodule):
+    """
+    Compute the average train loss of a PyTorch network given its datamodule.
 
-
-    model.eval()
+    Args:
+        model (torch.nn.Module): The input neural network.
+        datamodule (torch.utils.data.DataLoader): The input datamodule.
+    
+    Returns:
+        average_loss (float): The average training loss.
+    """
     # Initialize a variable to accumulate the training loss
     total_loss = 0.0
 
-    # Iterate over the training data and compute predictions
+    # Iterate over the training data and compute loss
     for batch in datamodule.train_dataloader():
-       inputs, targets = batch
-
-       # Forward pass
-       predictions = model(inputs)
-       # Compute the loss
-       loss = model.loss_module(predictions, targets)
+       loss, y_hat = model.f_step(batch, 0, train=True, log_metrics=False)
        total_loss += loss.item()
 
     # Calculate the average training loss
@@ -74,16 +85,23 @@ def compute_loss(model,datamodule):
     return average_loss
 
 
-def compute_max_and_avg_loss(model1, model2, granularity = 20):
+def compute_max_and_avg_loss(model1, model2, datamodule1, granularity = 20):
     """
-    Computes the maximum and average loss on the linear path among 2 parent networks
+    Computes the maximum and average loss on the linear path among 2 parent networks by defining a linspace of size granularity
+
+    Args:
+        model1 (torch.nn.Module): The first input neural network.
+        model2 (torch.nn.Module): The second input neural network.
+        datamodule1 (torch.utils.data.DataLoader): The input datamodule of the first network.
+        granularity (int): The number of points on the linear path.
+
+    Returns:
+        max_loss (float): The maximum loss on the linear path.
+        average_loss (float): The average loss on the linear path.
     """
     losses = []
     params1 = get_network_parameters(model1)
     params2 = get_network_parameters(model2)
-
-    print("params 1", params1[0][0][0])
-    print("params 2", params2[0][0][0])
 
     # Initialize the fused model as a copy of model1 
     fused_model = copy.deepcopy(model1)
@@ -102,7 +120,7 @@ def compute_max_and_avg_loss(model1, model2, granularity = 20):
         # Compute the loss on the linear path
         loss = compute_loss(fused_model, datamodule1)
         losses.append(loss)
-        print(f"Alpha: {alpha:.2f}, Loss: {loss:.2f}")
+        print(f"Alpha: {alpha:.2f}, Train average loss: {loss:.5f}")
 
     # Compute the maximum and average loss
     max_loss = np.max(losses)
