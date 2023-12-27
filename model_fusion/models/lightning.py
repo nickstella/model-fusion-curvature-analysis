@@ -16,6 +16,8 @@ class BaseModel(lightning.LightningModule):
         self.loss_module = loss_module
         self.save_hyperparameters()
         self.model = model_type.get_model(**model_hparams)
+        self.train_losses = []
+        self.val_losses = []
 
     def forward(self, x):
         """Forward pass, returns logits"""
@@ -49,9 +51,23 @@ class BaseModel(lightning.LightningModule):
         return torch.optim.Adam(self.parameters(), lr=1e-3)
 
     def log_metrics(self, metrics, train, prog_bar=True):
+        if train:
+            self.train_losses.append(metrics['loss'])
+        else:
+            self.val_losses.append(metrics['loss'])
         prefix = "train_" if train else "val_"
         metrics_prefixed = {prefix + str(key): val for key, val in metrics.items()}
         self.log_dict(metrics_prefixed, prog_bar=prog_bar)
+
+    def on_train_epoch_end(self) -> None:
+        metrics = {'avg_train_loss': torch.stack(self.train_losses).mean()}
+        self.log_dict(metrics, prog_bar=True)
+        self.train_losses = []
+
+    def on_validation_epoch_end(self) -> None:
+        metrics = {'avg_val_loss': torch.stack(self.val_losses).mean()}
+        self.log_dict(metrics, prog_bar=True)
+        self.val_losses = []
 
     @staticmethod
     def add_model_specific_args(parent_parser):  # pragma: no cover
