@@ -2,6 +2,7 @@ import enum
 
 from torch import nn
 from torchvision.models import vgg11, vgg16, resnet18
+from copy import deepcopy
 
 
 class ModelType(enum.Enum):
@@ -12,6 +13,15 @@ class ModelType(enum.Enum):
     def remove_bias(self, model: nn.Module):
         model = model.apply(lambda m: m.register_parameter('bias', None))
         return model
+
+    def replace_bn_with_identity(self, module):
+        for name, child in list(module.named_children()):
+            if isinstance(child, nn.BatchNorm2d):
+                setattr(module, name, nn.Identity())
+            else:
+                self.replace_bn_with_identity(child)
+
+
 
     def get_model(self, *args, **kwargs) -> nn.Module:
         bias = kwargs.pop('bias', False)
@@ -40,6 +50,9 @@ class ModelType(enum.Enum):
 
         if not bias:
             model = self.remove_bias(model)
+
+        # skip batch norm layers
+        self.replace_bn_with_identity(model)
 
         return model
 

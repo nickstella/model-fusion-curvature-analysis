@@ -1,5 +1,5 @@
 import wandb
-
+import torch
 from model_fusion.train import setup_training
 from model_fusion.datasets import DataModuleType
 from model_fusion.models import ModelType
@@ -8,7 +8,7 @@ from model_fusion.config import BASE_DATA_DIR
 
 def run_experiment():
     batch_size = 32
-    max_epochs = 1
+    max_epochs = 0
     datamodule_type = DataModuleType.CIFAR10
     datamodule_hparams = {'batch_size': batch_size, 'data_dir': BASE_DATA_DIR}
 
@@ -26,6 +26,8 @@ def run_experiment():
 
     datamodule.setup('test')
     trainer.test(model, dataloaders=datamodule.test_dataloader())
+    
+    torch.save(model.state_dict(), "./model.pt")
 
     wandb.finish()
 

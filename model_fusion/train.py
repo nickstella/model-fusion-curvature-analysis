@@ -26,6 +26,7 @@ def setup_training(experiment_name: str,
     logger = get_wandb_logger(experiment_name, logger_config, wandb_tags)
     # Callbacks for the trainer
     callbacks = []
+    # Add early stopping callback 
     if early_stopping:
         monitor = kwargs.pop('monitor', 'val_loss')
         patience = kwargs.pop('patience', 3)
@@ -41,6 +42,7 @@ def get_wandb_logger(experiment_name: str, hparams: dict, wandb_tags: List[str] 
         'project': WANDB_PROJECT_NAME,
         # name of the run on wandb
         'name': experiment_name,
+        # 'checkpoint_name': experiment_name, #TODO change naming convention for checkpoints
         # track hyperparameters and run metadata
         'config': hparams,
         'tags': wandb_tags
