@@ -1,6 +1,9 @@
 #===DATASET CONFIG===
 BASE_DATA_DIR="./data/"
 
+#===CHECKPOINT CONFIG===
+CHECKPOINT_DIR="./checkpoints/"
+
 # Amount of workers to use for loading the data
 # 0 means that the data will be loaded in the main process
 # 1 means that one additional process will be created

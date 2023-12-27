@@ -3,7 +3,6 @@ import enum
 from torch import nn
 from torchvision.models import vgg11, vgg11_bn, resnet18
 
-
 class ModelType(enum.Enum):
     RESNET18 = 'resnet18'
     VGG11 = 'vgg11'
@@ -11,7 +10,7 @@ class ModelType(enum.Enum):
     def remove_bias(self, model: nn.Module):
         model = model.apply(lambda m: m.register_parameter('bias', None))
         return model
-
+    
     def get_model(self, *args, **kwargs) -> nn.Module:
         bias = kwargs.pop('bias', False)
         num_channels = kwargs.pop('num_channels', 3)
