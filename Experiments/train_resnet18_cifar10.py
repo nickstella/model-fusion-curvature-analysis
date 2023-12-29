@@ -6,9 +6,7 @@ from model_fusion.models import ModelType
 from model_fusion.config import BASE_DATA_DIR
 
 
-def run_experiment():
-    batch_size = 32
-    max_epochs = 1
+def train_resnet18_cifar10(max_epochs=1, batch_size=32):
     datamodule_type = DataModuleType.CIFAR10
     datamodule_hparams = {'batch_size': batch_size, 'data_dir': BASE_DATA_DIR}
 
@@ -17,7 +15,7 @@ def run_experiment():
 
     wandb_tags = ['RESNET-18', 'CIFAR_10', f"Batch size {batch_size}"]
 
-    model, datamodule, trainer = setup_training(f'RESNET-18 CIFAR-10 B32', model_type, model_hparams, datamodule_type, datamodule_hparams, max_epochs=max_epochs, wandb_tags=wandb_tags)
+    model, datamodule, trainer = setup_training(f'RESNET-18 CIFAR-10 B{batch_size}', model_type, model_hparams, datamodule_type, datamodule_hparams, max_epochs=max_epochs, wandb_tags=wandb_tags)
 
     datamodule.prepare_data()
 
@@ -31,4 +29,4 @@ def run_experiment():
 
 
 if __name__ == '__main__':
-    run_experiment()
+    train_resnet18_cifar10()
