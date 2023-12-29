@@ -24,10 +24,6 @@ def train_resnet18_cifar10(max_epochs=1, batch_size=32):
 
     datamodule.setup('test')
     trainer.test(model, dataloaders=datamodule.test_dataloader())
-    
-    # torch.save(model.state_dict(), "./model.pt")
-
-    # BaseModel.load_from_checkpoint("path").model
 
     wandb.finish()
 
