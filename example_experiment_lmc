@@ -23,12 +23,18 @@ def run_experiment():
     trainer1.fit(model1, datamodule=datamodule1)
     trainer2.fit(model2, datamodule=datamodule2)
 
-    max_loss, avg_loss = lmc.compute_max_and_avg_loss(model1,model2, datamodule1,granularity=5)
+    loss1= lmc.compute_loss(model1, datamodule2)
+    loss2= lmc.compute_loss(model2, datamodule2)
+
+    print("length of train dataloader 1",len(datamodule1.train_dataloader()))
+    print("length of train dataloader 2",len(datamodule2.train_dataloader()))
+
+    print ("Loss of model1: ", loss1)
+    print ("Loss of model2: ", loss2)
+    
+    max_loss, avg_loss = lmc.compute_max_and_avg_loss(model1,model2, datamodule2,granularity=5)
     error_barrier = max_loss - avg_loss
     print(f"Max loss: {max_loss:.5f}, Average loss: {avg_loss:.5f}, Error barrier: {error_barrier:.5f}")
-
-    trainer1.test(model1, datamodule=datamodule1)
-    trainer2.test(model2, datamodule=datamodule2)
 
     wandb.finish()
 

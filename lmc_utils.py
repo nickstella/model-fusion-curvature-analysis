@@ -61,6 +61,9 @@ def update_network_parameters(model, new_params):
     for param, new_param in zip(model.parameters(), new_params):
         param.data.copy_(new_param)
 
+    for param, new_param in zip(model.parameters(), new_params):
+        assert torch.all(torch.eq(param.data, new_param)), "Parameters are not updated correctly."
+
 def compute_loss(model,datamodule):
     """
     Compute the average train loss of a PyTorch network given its datamodule.
@@ -85,14 +88,14 @@ def compute_loss(model,datamodule):
     return average_loss
 
 
-def compute_max_and_avg_loss(model1, model2, datamodule1, granularity = 20):
+def compute_max_and_avg_loss(model1, model2, datamodule, granularity = 20):
     """
     Computes the maximum and average loss on the linear path among 2 parent networks by defining a linspace of size granularity
 
     Args:
         model1 (torch.nn.Module): The first input neural network.
         model2 (torch.nn.Module): The second input neural network.
-        datamodule1 (torch.utils.data.DataLoader): The input datamodule of the first network.
+        datamodule1 or 2 (torch.utils.data.DataLoader): The input datamodule of the network with the larger batch size.
         granularity (int): The number of points on the linear path.
 
     Returns:
@@ -108,6 +111,7 @@ def compute_max_and_avg_loss(model1, model2, datamodule1, granularity = 20):
 
     alphas = np.linspace(0, 1, granularity)
 
+
     # Iterate over the linear path and compute the maximum loss
     for alpha in alphas:
 
@@ -118,9 +122,11 @@ def compute_max_and_avg_loss(model1, model2, datamodule1, granularity = 20):
         update_network_parameters(fused_model, combined_params)
 
         # Compute the loss on the linear path
-        loss = compute_loss(fused_model, datamodule1)
-        losses.append(loss)
-        print(f"Alpha: {alpha:.2f}, Train average loss: {loss:.5f}")
+
+        with torch.no_grad():
+            loss = compute_loss(fused_model, datamodule)
+            losses.append(loss)
+            print(f"Alpha: {alpha:.2f}, Train average loss: {loss:.5f}")
 
     # Compute the maximum and average loss
     max_loss = np.max(losses)
