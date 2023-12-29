@@ -46,7 +46,7 @@ def get_base_args():
         'momentum': 0.5,
         'log_interval': 100,
 
-         # finetuning parameters
+        # finetuning parameters
         'retrain_epochs': 0, # number of epochs to retrain all the models & their avgs
         'skip_retrain': -1, # which of the original models to skip retraining (-1 stands for skipping retraing of both parents)
         'retrain_seed': -1, # seed for retraining
@@ -87,7 +87,7 @@ def get_base_args():
         'print_distances': False, # print OT distances for every layer
         'importance': None, # l1, l2, l11, l12 - importance measure to use for building probab mass
         'proper_marginals': False, # consider the marginals of transport map properly (connected with importance)
-        'correction': False, # scaling correction for OT (for when acts are not properly normalized)
+        'correction': True, # scaling correction for OT (for when acts are not properly normalized)
 
 
         # metric parameters
