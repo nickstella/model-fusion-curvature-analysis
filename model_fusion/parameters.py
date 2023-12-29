@@ -73,14 +73,14 @@ def get_base_args():
         'activation_mode': None, # mean, std, meanstd, raw - mode that chooses how the importance of a neuron is calculated.
         'activation_normalize': False, # normalize activations before computing stats
         'center_acts': False, # subtract mean only across the samples for use in act based alignment
-        'skip_last_layer': False,
+        'skip_last_layer': True, # skip the last layer of the model
         'skip_last_layer_type': 'average', # second, average
-        'reg': 1e-2, # regularization strength for sinkhorn
-        'reg_m': 1e-3, # regularization strength for marginals in unbalanced sinkhorn
-        'weight_stats': False, # log neuron-wise weight vector stats.
-        'sinkhorn_type': 'normal', # normal, stabilized, epsilon
-        'gromov': False, # use gromov wasserstein distance and barycenters
-        'gromov_loss': 'square_loss', # choice of loss function for gromov wasserstein computations
+        # 'reg': 1e-2, # regularization strength for sinkhorn
+        # 'reg_m': 1e-3, # regularization strength for marginals in unbalanced sinkhorn
+        # 'weight_stats': False, # log neuron-wise weight vector stats.
+        # 'sinkhorn_type': 'normal', # normal, stabilized, epsilon
+        # 'gromov': False, # use gromov wasserstein distance and barycenters
+        # 'gromov_loss': 'square_loss', # choice of loss function for gromov wasserstein computations
         'prelu_acts': False, # do activation based alignment based on pre-relu acts
         'pool_acts': False, # do activation based alignment based on pooling acts
         'pool_relu': False, # do relu first before pooling acts
@@ -92,7 +92,7 @@ def get_base_args():
 
         # metric parameters
         'ground_metric': 'euclidean', # euclidean, cosine
-        'ground_metric_normalize': 'log', # log, max, none, median, mean
+        'ground_metric_normalize': 'log', # log, max, none, median, mean TODO
         'not_squared': False, # dont square the ground metric
         'ground_metric_eff': False, # memory efficient calculation of ground metric
         'dist_normalize': False, # normalize distances by act num samples (connected with ground_metric_eff)

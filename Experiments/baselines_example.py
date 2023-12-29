@@ -13,22 +13,13 @@ from model_fusion.config import BASE_DATA_DIR, CHECKPOINT_DIR
 
 from model_fusion.ensembling import prediction_ensembling, vanilla_averaging
 
-if __name__ == '__main__':
+def run_baselines():
 
     print("------- Setting up parameters -------")
     args = parameters.get_parameters()
     print("The parameters are: \n", args)
 
-    if args.deterministic:
-        torch.backends.cudnn.deterministic = True
-        torch.backends.cudnn.benchmark = False
 
-    # TODO loading configuration
-    # config, second_config = utils._get_config(args)
-    # args.config = config
-    # args.second_config = second_config
-
-    
     print("------- Loading models -------")
 
     batch_size = 32
@@ -65,13 +56,17 @@ if __name__ == '__main__':
     print("Done loading all the models")
 
 
-# set seed for numpy based calculations
-NUMPY_SEED = 100
-np.random.seed(NUMPY_SEED)
+    # set seed for numpy based calculations
+    NUMPY_SEED = 100
+    np.random.seed(NUMPY_SEED)
 
-# run baselines
-print("------- Prediction based ensembling -------")
-prediction_acc = prediction_ensembling.ensemble(args, models, test_loader)
+    # run baselines
+    print("------- Prediction based ensembling -------")
+    prediction_acc = prediction_ensembling.ensemble(args, models, test_loader)
 
-print("------- Naive ensembling of weights -------")
-vanilla_averaging.ensemble(args, models)
+    print("------- Naive ensembling of weights -------")
+    vanilla_averaging.ensemble(args, models)
+
+if __name__ == '__main__':
+
+    run_baselines()
