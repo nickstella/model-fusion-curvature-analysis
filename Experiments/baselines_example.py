@@ -1,18 +1,6 @@
 import model_fusion.parameters as parameters
 import torch
 import numpy as np
-# from models.data import get_dataloader
-# import models.routines as routines
-# import baselines.prediction_ensemble
-# import baselines.vanilla_avg
-# import ot_fusion.wasserstein_ensemble as wasserstein_ensemble
-# import os
-# import utils
-# import numpy as np
-# import sys
-# import torch
-# import models.train as cifar_train
-# from tensorboardX import SummaryWriter
 
 from pathlib import Path
 import wandb
@@ -23,7 +11,7 @@ from model_fusion.models import ModelType
 from model_fusion.models.lightning import BaseModel
 from model_fusion.config import BASE_DATA_DIR, CHECKPOINT_DIR
 
-from model_fusion.baselines import prediction_ensembling, vanilla_averaging
+from model_fusion.ensembling import prediction_ensembling, vanilla_averaging
 
 if __name__ == '__main__':
 
@@ -65,7 +53,6 @@ if __name__ == '__main__':
     modelB = BaseModel.load_from_checkpoint(Path(artifact_dir)/"model.ckpt")
                     
     datamodule.prepare_data()
-    datamodule.setup('test')
     test_loader = datamodule.test_dataloader()
 
     models = [modelA, modelB]
@@ -87,4 +74,4 @@ print("------- Prediction based ensembling -------")
 prediction_acc = prediction_ensembling.ensemble(args, models, test_loader)
 
 print("------- Naive ensembling of weights -------")
-vanilla_averaging.ensemble(args, models, test_loader)
+vanilla_averaging.ensemble(args, models)

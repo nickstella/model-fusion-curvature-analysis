@@ -1,0 +1,2 @@
+from model_fusion.ensembling.prediction_ensembling import get_prediction_ensemble
+from model_fusion.ensembling.vanilla_averaging import get_weight_averaged_model

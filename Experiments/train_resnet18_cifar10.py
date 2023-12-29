@@ -27,7 +27,9 @@ def run_experiment():
     datamodule.setup('test')
     trainer.test(model, dataloaders=datamodule.test_dataloader())
     
-    torch.save(model.state_dict(), "./model.pt")
+    # torch.save(model.state_dict(), "./model.pt")
+
+    # BaseModel.load_from_checkpoint("path").model
 
     wandb.finish()
 
