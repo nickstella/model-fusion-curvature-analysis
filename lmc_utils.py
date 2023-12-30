@@ -81,16 +81,17 @@ def compute_loss(model,datamodule):
     # Iterate over the training data and compute loss
     for batch in datamodule.train_dataloader():
        loss, y_hat = model.f_step(batch, 0, train=True, log_metrics=False)
-       total_loss += loss.item()
+       total_loss += loss.item()*len(batch[0]) # Multiply by batch size
 
-    # Calculate the average training loss
-    average_loss = total_loss / len(datamodule.train_dataloader())
+    # Calculate the average training loss over the entire training data
+    average_loss = total_loss / len(datamodule.train_dataloader().dataset)
     return average_loss
 
 
-def compute_max_and_avg_loss(model1, model2, datamodule, granularity = 20):
+def compute_losses_and_barrier(model1, model2, datamodule, granularity = 20):
     """
-    Computes the maximum and average loss on the linear path among 2 parent networks by defining a linspace of size granularity
+    Computes the maximum loss on the linear path among 2 parent networks by defining a linspace of size granularity.
+    It also computes the alpha which gives the maximum loss.
 
     Args:
         model1 (torch.nn.Module): The first input neural network.
@@ -99,8 +100,10 @@ def compute_max_and_avg_loss(model1, model2, datamodule, granularity = 20):
         granularity (int): The number of points on the linear path.
 
     Returns:
+        loss_model1 (float): The loss of model1 
+        loss_model2 (float): The loss of model2 
         max_loss (float): The maximum loss on the linear path.
-        average_loss (float): The average loss on the linear path.
+        max_alpha(float): The argmax of the convex combination.
     """
     losses = []
     params1 = get_network_parameters(model1)
@@ -130,6 +133,8 @@ def compute_max_and_avg_loss(model1, model2, datamodule, granularity = 20):
 
     # Compute the maximum and average loss
     max_loss = np.max(losses)
-    average_loss = np.mean(losses)
+    max_alpha = alphas[np.argmax(losses)]
+    loss_model1= losses[-1]
+    loss_model2= losses[0]
 
-    return max_loss, average_loss
+    return loss_model1, loss_model2, max_loss, max_alpha,
