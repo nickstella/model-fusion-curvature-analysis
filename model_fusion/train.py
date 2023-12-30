@@ -11,28 +11,29 @@ from model_fusion.models.lightning import BaseModel
 
 
 def setup_training(experiment_name: str,
-                   model_type: ModelType, model_hparams: Dict,
+                   model_type: ModelType, model_hparams: Dict, lightning_params: Dict,
                    datamodule_type: DataModuleType, datamodule_hparams: dict,
+                   min_epochs: int,
                    max_epochs: int,
                    wandb_tags: List[str],
                    early_stopping: bool = True,
                    *args, **kwargs):
     # Create the model
-    model = BaseModel(model_type=model_type, model_hparams=model_hparams)
+    model = BaseModel(model_type=model_type, model_hparams=model_hparams, **lightning_params)
     # Create the datamodule
     datamodule = datamodule_type.get_data_module(**datamodule_hparams)
     # Create the logger
-    logger_config = model_hparams | datamodule_hparams | {'max_epochs': max_epochs, 'model_type': model_type, 'datamodule_type': datamodule_type, 'early_stopping': early_stopping}
+    logger_config = model_hparams | datamodule_hparams | {'min_epochs': min_epochs, 'max_epochs': max_epochs, 'model_type': model_type, 'datamodule_type': datamodule_type, 'early_stopping': early_stopping}
     logger = get_wandb_logger(experiment_name, logger_config, wandb_tags)
     # Callbacks for the trainer
     callbacks = []
-    # Add early stopping callback 
+    # Add early stopping callback
     if early_stopping:
         monitor = kwargs.pop('monitor', 'val_loss')
         patience = kwargs.pop('patience', 3)
         callbacks.append(EarlyStopping(monitor=monitor, patience=patience))
     # Create the trainer
-    trainer = L.Trainer(max_epochs=max_epochs, logger=logger, callbacks=callbacks, *args, **kwargs)
+    trainer = L.Trainer(min_epochs=min_epochs, max_epochs=max_epochs, logger=logger, callbacks=callbacks, *args, **kwargs)
     return model, datamodule, trainer
 
 

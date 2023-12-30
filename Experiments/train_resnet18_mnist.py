@@ -6,7 +6,7 @@ from model_fusion.models import ModelType
 from model_fusion.config import BASE_DATA_DIR
 
 
-def train_resnet18_mnist(max_epochs=1, batch_size=32):
+def train_resnet18_mnist(min_epochs=0, max_epochs=1, batch_size=32):
     datamodule_type = DataModuleType.MNIST
     datamodule_hparams = {'batch_size': batch_size, 'data_dir': BASE_DATA_DIR}
 
@@ -15,7 +15,7 @@ def train_resnet18_mnist(max_epochs=1, batch_size=32):
 
     wandb_tags = ['RESNET-18', 'MNIST', f"Batch size {batch_size}"]
 
-    model, datamodule, trainer = setup_training(f'RESNET-18 MNIST B{batch_size}', model_type, model_hparams, datamodule_type, datamodule_hparams, max_epochs=max_epochs, wandb_tags=wandb_tags)
+    model, datamodule, trainer = setup_training(f'RESNET-18 MNIST B{batch_size}', model_type, model_hparams, datamodule_type, datamodule_hparams, min_epochs=min_epochs, max_epochs=max_epochs, wandb_tags=wandb_tags)
 
     datamodule.prepare_data()
 
