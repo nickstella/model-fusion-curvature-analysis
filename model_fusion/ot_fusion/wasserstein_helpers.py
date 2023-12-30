@@ -1,3 +1,7 @@
+'''
+Source: https://github.com/sidak/otfusion
+'''
+
 import ot
 import torch
 import numpy as np
@@ -21,15 +25,15 @@ def cost_matrix(x, y, p=2):
 def get_histogram(args, idx, cardinality, layer_name, activations=None, return_numpy = True, float64=False):
     if activations is None:
         # returns a uniform measure
-        print("returns a uniform measure of cardinality: ", cardinality)
+        # print("returns a uniform measure of cardinality: ", cardinality)
         return np.ones(cardinality)/cardinality
         
     else:
         # return softmax over the activations raised to a temperature
         # layer_name is like 'fc1.weight', while activations only contains 'fc1'
-        print(activations[idx].keys())
+        # print(activations[idx].keys())
         unnormalized_weights = activations[idx][layer_name.split('.')[0]]
-        print("For layer {},  shape of unnormalized weights is ".format(layer_name), unnormalized_weights.shape)
+        # print("For layer {},  shape of unnormalized weights is ".format(layer_name), unnormalized_weights.shape)
         unnormalized_weights = unnormalized_weights.squeeze()
         assert unnormalized_weights.shape[0] == cardinality
 
@@ -60,7 +64,7 @@ def get_activation_distance_stats(activations_0, activations_1, layer_name=""):
     print("Statistics of the distance from neurons of layer 1 (averaged across nodes of layer 0): \n")
     print("Max : {}, Mean : {}, Min : {}, Std: {}".format(torch.mean(max_dists), torch.mean(mean_dists), torch.mean(min_dists), torch.mean(std_dists)))
 
-def update_model(args, model, new_params, datamodule_type, datamodule_hparams):
+def eval_aligned_model(model, new_params, datamodule_type, datamodule_hparams):
 
     updated_model = copy.deepcopy(model)
 
@@ -71,7 +75,6 @@ def update_model(args, model, new_params, datamodule_type, datamodule_hparams):
     print("len of new_params is ", len(new_params))
 
     for key, value in model_state_dict.items():
-        print("updated parameters for layer ", key)
         model_state_dict[key] = new_params[layer_idx]
         layer_idx += 1
         if layer_idx == len(new_params):
@@ -109,7 +112,7 @@ def process_activations(args, activations, layer0_name, layer1_name):
     if args.same_model == True:
         # sanity check when averaging the same model (with value being the model index)
         assert (activations_0 == activations_1).all()
-        print("Are the activations the same? ", (activations_0 == activations_1).all())
+        # print("Are the activations the same? ", (activations_0 == activations_1).all())
 
     if len(activations_0.shape) == 2:
         activations_0 = activations_0.t()
@@ -117,7 +120,7 @@ def process_activations(args, activations, layer0_name, layer1_name):
     elif len(activations_0.shape) > 2:
         reorder_dim = [l for l in range(1, len(activations_0.shape))]
         reorder_dim.append(0)
-        print("reorder_dim is ", reorder_dim)
+        # print("reorder_dim is ", reorder_dim)
         activations_0 = activations_0.permute(*reorder_dim).contiguous()
         activations_1 = activations_1.permute(*reorder_dim).contiguous()
 
@@ -138,10 +141,10 @@ def get_layer_weights(layer_weight, is_conv):
     return layer_weight_data
 
 def process_ground_metric_from_acts(args, is_conv, ground_metric_object, activations):
-    print("inside refactored")
+    # print("inside refactored")
     if is_conv:
         M0 = ground_metric_object.process(activations[0].view(activations[0].shape[0], -1), activations[1].view(activations[1].shape[0], -1))
-        print("# of ground metric features is ", (activations[0].view(activations[0].shape[0], -1)).shape[1])
+        # print("# of ground metric features is ", (activations[0].view(activations[0].shape[0], -1)).shape[1])
     
     else:
         M0 = ground_metric_object.process(activations[0], activations[1])
@@ -150,7 +153,7 @@ def process_ground_metric_from_acts(args, is_conv, ground_metric_object, activat
 
 def sanity_check_tmap(T):
     if not math.isclose(np.sum(T), 1.0, abs_tol=1e-7):
-        print("Sum of transport map is ", np.sum(T))
+        # print("Sum of transport map is ", np.sum(T))
         raise Exception('NAN inside Transport MAP. Most likely due to large ground metric values')
 
 def check_layer_sizes(args, layer_idx, shape1, shape2, num_layers):
@@ -168,7 +171,7 @@ def compute_marginals(args, T_var, eps=1e-7):
 
             marginals = torch.matmul(T_var, marginals)
             marginals = 1 / (marginals + eps)
-            print("marginals are ", marginals)
+            # print("marginals are ", marginals)
 
             T_var = T_var * marginals
 
@@ -176,18 +179,19 @@ def compute_marginals(args, T_var, eps=1e-7):
             marginals_beta = T_var.t() @ torch.ones(T_var.shape[0], dtype=T_var.dtype)
 
             marginals = (1 / (marginals_beta + eps))
-            print("shape of inverse marginals beta is ", marginals_beta.shape)
-            print("inverse marginals beta is ", marginals_beta)
+            # print("shape of inverse marginals beta is ", marginals_beta.shape)
+            # print("inverse marginals beta is ", marginals_beta)
 
             T_var = T_var * marginals
             # i.e., how a neuron of 2nd model is constituted by the neurons of 1st model
             # this should all be ones, and number equal to number of neurons in 2nd model
             
-            print(T_var.sum(dim=0))
+            # print(T_var.sum(dim=0))
             # assert (T_var.sum(dim=0) == torch.ones(T_var.shape[1], dtype=T_var.dtype).to(device)).all()
 
         print("T_var after correction ", T_var)
         print("T_var stats: max {}, min {}, mean {}, std {} ".format(T_var.max(), T_var.min(), T_var.mean(), T_var.std()))
+    
     else:
         marginals = None
 
@@ -200,10 +204,11 @@ def get_current_layer_transport_map(args, mu, nu, M0, idx, layer_shape, eps=1e-7
     if args.exact:
         T = ot.emd(mu, nu, cpuM)
     else:
-        raise ValueError("Exact computation is required for OT cost calculation.")
+        raise ValueError("Exact computation is required for transport map")
     
     ot_cost = np.multiply(T, cpuM).sum()
     print(f'At layer idx {idx} and shape {layer_shape}, the OT cost is ', ot_cost)
+    
     if layer_name is not None:
         setattr(args, f'{layer_name}_layer_{idx}_cost', ot_cost)
     else:
@@ -224,7 +229,7 @@ def get_current_layer_transport_map(args, mu, nu, M0, idx, layer_shape, eps=1e-7
     return T_var
 
 def get_neuron_importance_histogram(args, layer_weight, is_conv, eps=1e-9):
-    print('shape of layer_weight is ', layer_weight.shape)
+    # print('shape of layer_weight is ', layer_weight.shape)
     if is_conv:
         layer = layer_weight.contiguous().view(layer_weight.shape[0], -1).cpu().numpy()
     else:
@@ -240,12 +245,12 @@ def get_neuron_importance_histogram(args, layer_weight, is_conv, eps=1e-9):
         raise NotImplementedError
 
     importance_hist = (importance_hist/importance_hist.sum())
-    print('sum of importance hist is ', importance_hist.sum())
+    # print('sum of importance hist is ', importance_hist.sum())
     
     # assert importance_hist.sum() == 1.0
     return importance_hist
 
-def get_network_from_param_list(args, parent_model, param_list):
+def get_network_from_param_list(parent_model, param_list):
 
     new_model = BaseModel(model_type=parent_model.model_type, model_hparams=parent_model.model_hparams)
 
@@ -254,17 +259,14 @@ def get_network_from_param_list(args, parent_model, param_list):
 
     param_list = list(param_list)  # Convert generator to list
 
-    print("len of model_state_dict is ", len(list(new_model.parameters())))
-    print("len of new_params is ", len(param_list))
+    print("# model parameters: ", len(list(new_model.parameters())))
+    print("# new parameters: ", len(param_list))
 
     assert len(list(new_model.parameters())) == len(param_list)
 
-    for name, module in new_model.named_modules():
-        print(name)
-
     layer_idx = 0
     for key, value in model_state_dict.items():
-        print("currently fusing: ", key)
+        print("fusing: ", key)
         model_state_dict[key] = param_list[layer_idx]
         layer_idx += 1
 

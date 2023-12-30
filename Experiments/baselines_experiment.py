@@ -64,11 +64,14 @@ def run_baselines(
     datamodule.prepare_data()
     datamodule.setup('test')
 
+    print("------- evaluating base models -------")
     for model in models:
         trainer.test(model, dataloaders=datamodule.test_dataloader())
 
+    print("------- evaluating prediction ensembling -------")
     prediction_ensembling.evaluate_prediction_ensemble(prediction_ensembling_model, datamodule.test_dataloader(), loss_module=nn.CrossEntropyLoss())
     
+    print("------- evaluating vanilla averaging -------")
     trainer.test(vanilla_averaging_model, dataloaders=datamodule.test_dataloader())
 
     wandb.finish()

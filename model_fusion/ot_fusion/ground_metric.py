@@ -1,5 +1,8 @@
+'''
+Source: https://github.com/sidak/otfusion
+'''
+
 import torch
-# from utils import isnan
 
 class GroundMetric:
     """
@@ -27,25 +30,21 @@ class GroundMetric:
         print("percent_clipped is (assumes clip_min = 0) ", percent_clipped)
         setattr(self.args, 'percent_clipped', percent_clipped)
         # will keep the M' = M/reg in range clip_min and clip_max
-        ground_metric_matrix.clamp_(min=self.reg * self.args.clip_min,
-                                             max=self.reg * self.args.clip_max)
-        if self.args.debug:
-            print("after clipping", ground_metric_matrix.data)
+        ground_metric_matrix.clamp_(min=self.reg * self.args.clip_min, max=self.reg * self.args.clip_max)
         return ground_metric_matrix
 
-    # ASK normalize
     def _normalize(self, ground_metric_matrix):
 
         if self.ground_metric_normalize == "log":
             ground_metric_matrix = torch.log1p(ground_metric_matrix)
         elif self.ground_metric_normalize == "max":
-            print("Normalizing by max of ground metric and which is ", ground_metric_matrix.max())
+            # print("Normalizing by max of ground metric and which is ", ground_metric_matrix.max())
             ground_metric_matrix = ground_metric_matrix / ground_metric_matrix.max()
         elif self.ground_metric_normalize == "median":
-            print("Normalizing by median of ground metric and which is ", ground_metric_matrix.median())
+            # print("Normalizing by median of ground metric and which is ", ground_metric_matrix.median())
             ground_metric_matrix = ground_metric_matrix / ground_metric_matrix.median()
         elif self.ground_metric_normalize == "mean":
-            print("Normalizing by mean of ground metric and which is ", ground_metric_matrix.mean())
+            # print("Normalizing by mean of ground metric and which is ", ground_metric_matrix.mean())
             ground_metric_matrix = ground_metric_matrix / ground_metric_matrix.mean()
         elif self.ground_metric_normalize == "none":
             return ground_metric_matrix
@@ -64,7 +63,7 @@ class GroundMetric:
         y_lin = y.unsqueeze(0)
         c = torch.sum((torch.abs(x_col - y_lin)) ** p, 2)
         if not squared:
-            print("dont leave off the squaring of the ground metric")
+            # print("dont leave off the squaring of the ground metric")
             c = c ** (1/2)
        
         return c
@@ -92,13 +91,12 @@ class GroundMetric:
         # Ensure diagonal is zero if x=y
         dist = torch.clamp(dist, min=0.0)
 
-        # ASK dist normalize (but mention NotImplementedError for non memory efficient version)
         if self.args.activation_histograms and self.args.dist_normalize:
             dist = dist/self.args.act_num_samples
-            print("Divide squared distances by the num samples")
+            # print("Divide squared distances by the num samples")
 
         if not squared:
-            print("dont leave off the squaring of the ground metric")
+            # print("dont leave off the squaring of the ground metric")
             dist = dist ** (1/2)
 
         return dist
@@ -119,9 +117,9 @@ class GroundMetric:
 
     def _normed_vecs(self, vecs, eps=1e-9):
         norms = torch.norm(vecs, dim=-1, keepdim=True)
-        print("stats of vecs are: mean {}, min {}, max {}, std {}".format(
-            norms.mean(), norms.min(), norms.max(), norms.std()
-        ))
+        # print("stats of vecs are: mean {}, min {}, max {}, std {}".format(
+        #     norms.mean(), norms.min(), norms.max(), norms.std()
+        # ))
         return vecs / (norms + eps)
 
     def _get_cosine(self, coordinates, other_coordinates=None):
@@ -143,21 +141,15 @@ class GroundMetric:
         return get_metric_map[self.ground_metric_type](coordinates, other_coordinates)
 
     def process(self, coordinates, other_coordinates=None):
-        print('Processing the coordinates to form ground_metric')
+        # print('Processing the coordinates to form ground_metric')
         
         if self.args.geom_ensemble_type == 'wts' and self.args.normalize_wts:
-            print("In weight mode: normalizing weights to unit norm")
+            # print("In weight mode: normalizing weights to unit norm")
             coordinates = self._normed_vecs(coordinates)
             if other_coordinates is not None:
                 other_coordinates = self._normed_vecs(other_coordinates)
 
         ground_metric_matrix = self.get_metric(coordinates, other_coordinates)
-
-        if self.args.debug:
-            print("coordinates is ", coordinates)
-            if other_coordinates is not None:
-                print("other_coordinates is ", other_coordinates)
-            print("ground_metric_matrix is ", ground_metric_matrix)
 
         self._sanity_check(ground_metric_matrix)
 
@@ -169,8 +161,5 @@ class GroundMetric:
             ground_metric_matrix = self._clip(ground_metric_matrix)
 
         self._sanity_check(ground_metric_matrix)
-
-        if self.args.debug:
-            print("ground_metric_matrix at the end is ", ground_metric_matrix)
 
         return ground_metric_matrix

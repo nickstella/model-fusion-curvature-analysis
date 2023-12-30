@@ -1,15 +1,20 @@
+'''
+Source: https://github.com/sidak/otfusion
+'''
+
 from typing import List
 from torch import nn
-from model_fusion.train import setup_training
 from model_fusion.datasets import DataModuleType
-from model_fusion.models import ModelType
 from model_fusion.config import BASE_DATA_DIR
 import copy
+import logging
+
 
 def get_model_activations(args, models: List[nn.Module], datamodule_type: DataModuleType):
 
     if args.activation_histograms and args.act_num_samples > 0:
-
+        
+        # create unit batch size dataloader
         batch_size = 1
         datamodule_hparams = {'batch_size': batch_size, 'data_dir': BASE_DATA_DIR}
 
@@ -22,7 +27,8 @@ def get_model_activations(args, models: List[nn.Module], datamodule_type: DataMo
 
 
     else:
-        raise ValueError("No activations computed")
+        logging.error("No activation computated")
+
 
     return activations
 
@@ -44,6 +50,8 @@ def compute_activations_across_models(base_models, train_loader, num_samples):
 
     activations = {}
 
+    print("Computing activations")
+
     for idx, model in enumerate(models):
 
         # Initialize the activation dictionary for each model
@@ -55,7 +63,7 @@ def compute_activations_across_models(base_models, train_loader, num_samples):
                 # print("excluded")
                 continue
             layer.register_forward_hook(get_activation(activations[idx], name))
-            print("set forward hook for layer named: ", name)
+            # print("set forward hook for layer named: ", name)
 
         # Set the model in train mode
         model.train()
@@ -72,7 +80,7 @@ def compute_activations_across_models(base_models, train_loader, num_samples):
         if num_samples_processed == num_samples:
             break
     
-    print(f"Activations computed across {num_samples_processed} samples over {len(train_loader)}")
+    print(f"Activations computed across {num_samples_processed} samples out of {len(train_loader)}")
     
     return activations
 

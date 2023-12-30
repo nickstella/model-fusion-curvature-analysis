@@ -7,7 +7,7 @@ from model_fusion.train import setup_testing
 from model_fusion.datasets import DataModuleType
 from model_fusion.models import ModelType
 from model_fusion.models.lightning import BaseModel
-from model_fusion.config import BASE_DATA_DIR, CHECKPOINT_DIR
+from model_fusion.config import CHECKPOINT_DIR
 from model_fusion.ot_fusion import compute_activations, wasserstein_ensemble
 
 def run_otfusion(
@@ -24,6 +24,7 @@ def run_otfusion(
 
     print("------- Setting up parameters -------")
     args = parameters.get_parameters()
+    
     print("The parameters are: \n", args)
 
     print("------- Loading models -------")
@@ -45,11 +46,9 @@ def run_otfusion(
     NUMPY_SEED = 100
     np.random.seed(NUMPY_SEED)
 
-    # run ot model fusion
     print("------- OT model fusion -------")
     activations = compute_activations.get_model_activations(args, models, datamodule_type)
-
-    otfused_model = wasserstein_ensemble.geometric_ensembling(args, models, activations, datamodule_type, datamodule_hparams)
+    otfused_model = wasserstein_ensemble.get_otfused_model(args, models, activations, datamodule_type, datamodule_hparams)
 
     print("------- Evaluating models -------")
     experiment_name = f"{model_type.value}_{datamodule_type.value}_batch_size_{batch_size}_{wandb_tag}"
@@ -59,10 +58,12 @@ def run_otfusion(
 
     datamodule.prepare_data()
     datamodule.setup('test')
-
+    
+    print("------- evaluating base models -------")
     for model in models:
         trainer.test(model, dataloaders=datamodule.test_dataloader())
 
+    print("------- evaluating ot fused model -------")
     trainer.test(otfused_model, dataloaders=datamodule.test_dataloader())
 
     wandb.finish()

@@ -14,17 +14,16 @@ class BaseModel(lightning.LightningModule):
                  *args, **kwargs):
         super().__init__()
         self.lightning_params = kwargs
-
         self.loss_module = loss_module()
-
+        self.train_losses = []
         self.accuracy = Accuracy(task='multiclass', num_classes=model_hparams['num_classes'])
+        
         # Exports the hyperparameters to a YAML file, and create "self.hparams" namespace
-        self.loss_module = nn.CrossEntropyLoss()
         self.save_hyperparameters()
+        
         self.model_type = model_type
         self.model_hparams = model_hparams
         self.model = model_type.get_model(**model_hparams)
-        self.train_losses = []
 
     def forward(self, x):
         """Forward pass, returns logits"""
