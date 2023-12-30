@@ -13,7 +13,6 @@ class GroundMetric:
         self.ground_metric_normalize = args.ground_metric_normalize
         self.reg = args.reg
 
-        #ASK not squared
         if hasattr(args, 'not_squared'):
             self.squared = not args.not_squared
         else:
@@ -22,11 +21,7 @@ class GroundMetric:
 
         self.mem_eff = args.ground_metric_eff
     
-    # ASK clipping
     def _clip(self, ground_metric_matrix):
-        if self.args.debug:
-            print("before clipping", ground_metric_matrix.data)
-
         percent_clipped = (float((ground_metric_matrix >= self.reg * self.args.clip_max).long().sum().data) \
                            / ground_metric_matrix.numel()) * 100
         print("percent_clipped is (assumes clip_min = 0) ", percent_clipped)

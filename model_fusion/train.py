@@ -40,13 +40,12 @@ def setup_testing(experiment_name: str,
                   model_type: ModelType, model_hparams: dict,
                   datamodule_type: DataModuleType, datamodule_hparams: dict,
                   wandb_tags: List[str],
-                  early_stopping: bool = True,
                   *args, **kwargs):
     
     # Create the datamodule
     datamodule = datamodule_type.get_data_module(**datamodule_hparams)
     # Create the logger
-    logger_config = model_hparams | datamodule_hparams | {'model_type': model_type, 'datamodule_type': datamodule_type, 'early_stopping': early_stopping}
+    logger_config = model_hparams | datamodule_hparams | {'model_type': model_type, 'datamodule_type': datamodule_type}
     logger = get_wandb_logger(experiment_name, logger_config, wandb_tags)  
     # Create the trainer
     trainer = L.Trainer(max_epochs=0, logger=logger, *args, **kwargs)

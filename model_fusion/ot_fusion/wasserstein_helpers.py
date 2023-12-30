@@ -4,10 +4,12 @@ import numpy as np
 from model_fusion.train import setup_training
 from model_fusion.datasets import DataModuleType
 from model_fusion.models import ModelType
+from model_fusion.models.lightning import BaseModel
 from model_fusion.config import BASE_DATA_DIR
 import wandb
 import math
-import model_fusion.ot_fusion.compute_activations as compute_activations
+from model_fusion.train import setup_testing
+import copy
 
 def cost_matrix(x, y, p=2):
     "Returns the matrix of $|x_i-y_j|^p$."
@@ -19,13 +21,9 @@ def cost_matrix(x, y, p=2):
 def get_histogram(args, idx, cardinality, layer_name, activations=None, return_numpy = True, float64=False):
     if activations is None:
         # returns a uniform measure
-        if not args.unbalanced:
-            print("returns a uniform measure of cardinality: ", cardinality)
-            return np.ones(cardinality)/cardinality
-        else:
-            return np.ones(cardinality)
+        print("returns a uniform measure of cardinality: ", cardinality)
+        return np.ones(cardinality)/cardinality
         
-    # ASK softmax temperature
     else:
         # return softmax over the activations raised to a temperature
         # layer_name is like 'fc1.weight', while activations only contains 'fc1'
@@ -62,9 +60,9 @@ def get_activation_distance_stats(activations_0, activations_1, layer_name=""):
     print("Statistics of the distance from neurons of layer 1 (averaged across nodes of layer 0): \n")
     print("Max : {}, Mean : {}, Min : {}, Std: {}".format(torch.mean(max_dists), torch.mean(mean_dists), torch.mean(min_dists), torch.mean(std_dists)))
 
-def update_model(args, model, new_params, test=False, test_loader=None, reversed=False, idx=-1):
+def update_model(args, model, new_params, datamodule_type, datamodule_hparams):
 
-    updated_model = ModelType.RESNET18
+    updated_model = copy.deepcopy(model)
 
     layer_idx = 0
     model_state_dict = model.state_dict()
@@ -79,35 +77,21 @@ def update_model(args, model, new_params, test=False, test_loader=None, reversed
         if layer_idx == len(new_params):
             break
 
-
     updated_model.load_state_dict(model_state_dict)
 
-    # TODO change harcoded values + check if correct
-    if test:
+    wandb_tag = f"aligned_modelA"
+    experiment_name = f"{updated_model.model_type.value}_{datamodule_type.value}_batch_size_{datamodule_hparams.batch_size}_{wandb_tag}"
+    wandb_tags = [f"{updated_model.model_type.value}", f"{datamodule_type.value}", f"Batch size {datamodule_hparams.batch_size}", f"{wandb_tag}"]
 
-        batch_size = 32
-        max_epochs = 1
-        datamodule_type = DataModuleType.CIFAR10
-        datamodule_hparams = {'batch_size': batch_size, 'data_dir': BASE_DATA_DIR}
+    datamodule, trainer = setup_testing(experiment_name, updated_model.model_type, updated_model.model_hparams, datamodule_type, datamodule_hparams, wandb_tags)
 
-        model_type = ModelType.RESNET18
-        model_hparams = {'num_classes': 10, 'num_channels': 3, 'bias': False}
+    datamodule.prepare_data()
+    datamodule.setup('test')
 
-        wandb_tags = ['RESNET-18', 'CIFAR_10', f"Batch size {batch_size}", "vanilla averaging"]
+    trainer.test(updated_model, dataloaders=datamodule.test_dataloader())
+    wandb.finish()
 
-        _, datamodule, trainer = setup_training(f'RESNET-18 CIFAR-10 B32', model_type, model_hparams, datamodule_type, datamodule_hparams, max_epochs=max_epochs, wandb_tags=wandb_tags)
-
-        datamodule.prepare_data()
-        datamodule.setup('test')
-        trainer.test(model, dataloaders=datamodule.test_dataloader())
-
-        wandb.finish()
-    
-    else:
-         print("Not testing the updated model")
-         final_acc = None
-
-    return updated_model, final_acc
+    return updated_model
 
 def check_activation_sizes(args, acts0, acts1):
     if args.width_ratio == 1:
@@ -122,7 +106,7 @@ def process_activations(args, activations, layer0_name, layer1_name):
     # assert activations_0.shape == activations_1.shape
     check_activation_sizes(args, activations_0, activations_1)
 
-    if args.same_model != -1:
+    if args.same_model == True:
         # sanity check when averaging the same model (with value being the model index)
         assert (activations_0 == activations_1).all()
         print("Are the activations the same? ", (activations_0 == activations_1).all())
@@ -156,88 +140,18 @@ def get_layer_weights(layer_weight, is_conv):
 def process_ground_metric_from_acts(args, is_conv, ground_metric_object, activations):
     print("inside refactored")
     if is_conv:
-        # ASK gromov
-        if not args.gromov:
-            M0 = ground_metric_object.process(activations[0].view(activations[0].shape[0], -1),
-                                             activations[1].view(activations[1].shape[0], -1))
-        else:
-            M0 = ground_metric_object.process(activations[0].view(activations[0].shape[0], -1),
-                                              activations[0].view(activations[0].shape[0], -1))
-            M1 = ground_metric_object.process(activations[1].view(activations[1].shape[0], -1),
-                                              activations[1].view(activations[1].shape[0], -1))
-
+        M0 = ground_metric_object.process(activations[0].view(activations[0].shape[0], -1), activations[1].view(activations[1].shape[0], -1))
         print("# of ground metric features is ", (activations[0].view(activations[0].shape[0], -1)).shape[1])
+    
     else:
-        if not args.gromov:
-            M0 = ground_metric_object.process(activations[0], activations[1])
-        else:
-            M0 = ground_metric_object.process(activations[0], activations[0])
-            M1 = ground_metric_object.process(activations[1], activations[1])
-
-    if args.gromov:
-        return M0, M1
-    else:
-        return M0, None
-
-
-def custom_sinkhorn(args, mu, nu, cpuM):
-    if not args.unbalanced:
-        if args.sinkhorn_type == 'normal':
-            T = ot.bregman.sinkhorn(mu, nu, cpuM, reg=args.reg)
-        elif args.sinkhorn_type == 'stabilized':
-            T = ot.bregman.sinkhorn_stabilized(mu, nu, cpuM, reg=args.reg)
-        elif args.sinkhorn_type == 'epsilon':
-            T = ot.bregman.sinkhorn_epsilon_scaling(mu, nu, cpuM, reg=args.reg)
-        else:
-            raise NotImplementedError
-    else:
-        T = ot.unbalanced.sinkhorn_knopp_unbalanced(mu, nu, cpuM, reg=args.reg, reg_m=args.reg_m)
-    return T
-
+        M0 = ground_metric_object.process(activations[0], activations[1])
+        
+    return M0
 
 def sanity_check_tmap(T):
     if not math.isclose(np.sum(T), 1.0, abs_tol=1e-7):
         print("Sum of transport map is ", np.sum(T))
         raise Exception('NAN inside Transport MAP. Most likely due to large ground metric values')
-
-def get_updated_acts_v0(args, layer_shape, aligned_wt, model0_aligned_layers, networks, test_loader, layer_names):
-    '''
-    Return the updated activations of the 0th model with respect to the other one.
-
-    :param args:
-    :param layer_shape:
-    :param aligned_wt:
-    :param model0_aligned_layers:
-    :param networks:
-    :param test_loader:
-    :param layer_names:
-    :return:
-    '''
-    if layer_shape != aligned_wt.shape:
-        updated_aligned_wt = aligned_wt.view(layer_shape)
-    else:
-        updated_aligned_wt = aligned_wt
-
-    updated_model0, _ = update_model(args, networks[0], model0_aligned_layers + [updated_aligned_wt], test=True, test_loader=test_loader, idx=0)
-    updated_activations = compute_activations.get_model_activations(args, [updated_model0, networks[1]], config=args.config, layer_name=reduce_layer_name(layer_names[0]), selective=True)
-
-    updated_activations_0, updated_activations_1 = process_activations(args, updated_activations,
-                                                                       layer_names[0], layer_names[1])
-    return updated_activations_0, updated_activations_1
-
-def get_updated_acts_v1(args, networks, test_loader, layer_names):
-    '''
-    Return the updated activations of the 0th model with respect to the other one.
-
-    :param args:
-    :param test_loader:
-    :param layer_names:
-    :return:
-    '''
-    updated_activations = compute_activations.get_model_activations(args, networks, config=args.config)
-
-    updated_activations_0, updated_activations_1 = process_activations(args, updated_activations, layer_names[0], layer_names[1])
-    return updated_activations_0, updated_activations_1
 
 def check_layer_sizes(args, layer_idx, shape1, shape2, num_layers):
     if args.width_ratio == 1:
@@ -245,14 +159,12 @@ def check_layer_sizes(args, layer_idx, shape1, shape2, num_layers):
     else: 
         raise ValueError(f"Different layer widths: {shape1} and {shape2}")
 
-def compute_marginals(args, T_var, device, eps=1e-7):
+def compute_marginals(args, T_var, eps=1e-7):
     if args.correction:
         if not args.proper_marginals:
             
             # think of it as m x 1, scaling weights for m linear combinations of points in X
             marginals = torch.ones(T_var.shape)
-            if args.gpu_id != -1:
-                marginals = marginals.cuda(args.gpu_id)
 
             marginals = torch.matmul(T_var, marginals)
             marginals = 1 / (marginals + eps)
@@ -261,7 +173,7 @@ def compute_marginals(args, T_var, device, eps=1e-7):
             T_var = T_var * marginals
 
         else:
-            marginals_beta = T_var.t() @ torch.ones(T_var.shape[0], dtype=T_var.dtype).to(device)
+            marginals_beta = T_var.t() @ torch.ones(T_var.shape[0], dtype=T_var.dtype)
 
             marginals = (1 / (marginals_beta + eps))
             print("shape of inverse marginals beta is ", marginals_beta.shape)
@@ -275,51 +187,36 @@ def compute_marginals(args, T_var, device, eps=1e-7):
             # assert (T_var.sum(dim=0) == torch.ones(T_var.shape[1], dtype=T_var.dtype).to(device)).all()
 
         print("T_var after correction ", T_var)
-        print("T_var stats: max {}, min {}, mean {}, std {} ".format(T_var.max(), T_var.min(), T_var.mean(),
-                                                                     T_var.std()))
+        print("T_var stats: max {}, min {}, mean {}, std {} ".format(T_var.max(), T_var.min(), T_var.mean(), T_var.std()))
     else:
         marginals = None
 
     return T_var, marginals
 
-def get_current_layer_transport_map(args, mu, nu, M0, M1, idx, layer_shape, eps=1e-7, layer_name=None):
+def get_current_layer_transport_map(args, mu, nu, M0, idx, layer_shape, eps=1e-7, layer_name=None):
 
-    if not args.gromov:
-        cpuM = M0.data.cpu().numpy()
-        if args.exact:
-            T = ot.emd(mu, nu, cpuM)
-        else:
-            T = custom_sinkhorn(args, mu, nu, cpuM)
-
-        if args.print_distances:
-            ot_cost = np.multiply(T, cpuM).sum()
-            print(f'At layer idx {idx} and shape {layer_shape}, the OT cost is ', ot_cost)
-            if layer_name is not None:
-                setattr(args, f'{layer_name}_layer_{idx}_cost', ot_cost)
-            else:
-                setattr(args, f'layer_{idx}_cost', ot_cost)
+    cpuM = M0.data.cpu().numpy()
     
+    if args.exact:
+        T = ot.emd(mu, nu, cpuM)
     else:
-        cpuM0 = M0.data.cpu().numpy()
-        cpuM1 = M1.data.cpu().numpy()
-
-        assert not args.exact
-        # if i understood correctly, this should be more efficient but less accurate
-        T = ot.gromov.entropic_gromov_wasserstein(cpuM0, cpuM1, mu, nu, loss_fun=args.gromov_loss, epsilon=args.reg)
-
-    if not args.unbalanced:
-        sanity_check_tmap(T)
-
-    if args.gpu_id != -1:
-        T_var = torch.from_numpy(T).cuda(args.gpu_id).float()
+        raise ValueError("Exact computation is required for OT cost calculation.")
+    
+    ot_cost = np.multiply(T, cpuM).sum()
+    print(f'At layer idx {idx} and shape {layer_shape}, the OT cost is ', ot_cost)
+    if layer_name is not None:
+        setattr(args, f'{layer_name}_layer_{idx}_cost', ot_cost)
     else:
-        T_var = torch.from_numpy(T).float()
+        setattr(args, f'layer_{idx}_cost', ot_cost)
 
-    if args.tmap_stats:
-        print(
+    sanity_check_tmap(T)
+
+    T_var = torch.from_numpy(T).float()
+
+    print(
         "Tmap stats (before correction) \n: For layer {}, frobenius norm from the joe's transport map is {}".format(
             layer_name, torch.norm(T_var - torch.ones_like(T_var) / torch.numel(T_var), p='fro')
-        ))
+    ))
 
     print("shape of T_var is ", T_var.shape)
     print("T_var before correction ", T_var)
@@ -342,51 +239,35 @@ def get_neuron_importance_histogram(args, layer_weight, is_conv, eps=1e-9):
     else:
         raise NotImplementedError
 
-    if not args.unbalanced:
-        importance_hist = (importance_hist/importance_hist.sum())
-        print('sum of importance hist is ', importance_hist.sum())
+    importance_hist = (importance_hist/importance_hist.sum())
+    print('sum of importance hist is ', importance_hist.sum())
+    
     # assert importance_hist.sum() == 1.0
     return importance_hist
 
-def get_network_from_param_list(args, param_list, test_loader):
+def get_network_from_param_list(args, parent_model, param_list):
 
-    print("using independent method")
-    model_type = ModelType.RESNET18
-
-    # check the test performance of the network before
-    batch_size = 32
-    max_epochs = 1
-    datamodule_type = DataModuleType.CIFAR10
-    datamodule_hparams = {'batch_size': batch_size, 'data_dir': BASE_DATA_DIR}
-
-    model_type = ModelType.RESNET18
-    model_hparams = {'num_classes': 10, 'num_channels': 3, 'bias': False}
-
-    wandb_tags = ['RESNET-18', 'CIFAR_10', f"Batch size {batch_size}", "vanilla averaging"]
-
-    new_model, datamodule, trainer = setup_training(f'RESNET-18 CIFAR-10 B32', model_type, model_hparams, datamodule_type, datamodule_hparams, max_epochs=max_epochs, wandb_tags=wandb_tags)
-
-    datamodule.prepare_data()
-    datamodule.setup('test')
-    trainer.test(new_model, dataloaders=datamodule.test_dataloader())
-
-    # set the weights of the new network
-    # print("before", new_network.state_dict())
-    print("len of model parameters and avg aligned layers is ", len(list(new_model.parameters())), len(param_list))
-    assert len(list(new_model.parameters())) == len(param_list)
+    new_model = BaseModel(model_type=parent_model.model_type, model_hparams=parent_model.model_hparams)
 
     layer_idx = 0
     model_state_dict = new_model.state_dict()
 
-    print("len of model_state_dict is ", len(model_state_dict.items()))
-    print("len of param_list is ", len(param_list))
-    
-    for param, (name, _) in zip(param_list, new_model.named_parameters()):
-        new_model.state_dict()[name].copy_(param.data)
+    param_list = list(param_list)  # Convert generator to list
 
-    trainer.test(new_model, dataloaders=datamodule.test_dataloader())
+    print("len of model_state_dict is ", len(list(new_model.parameters())))
+    print("len of new_params is ", len(param_list))
 
-    wandb.finish()
+    assert len(list(new_model.parameters())) == len(param_list)
 
+    for name, module in new_model.named_modules():
+        print(name)
+
+    layer_idx = 0
+    for key, value in model_state_dict.items():
+        print("currently fusing: ", key)
+        model_state_dict[key] = param_list[layer_idx]
+        layer_idx += 1
+
+    new_model.load_state_dict(model_state_dict)
 
     return new_model

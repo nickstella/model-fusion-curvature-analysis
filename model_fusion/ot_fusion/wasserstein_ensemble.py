@@ -1,9 +1,10 @@
 import torch
 import ot
+from model_fusion.models import ModelType
 from model_fusion.ot_fusion.ground_metric import GroundMetric
 import model_fusion.ot_fusion.wasserstein_helpers as helpers
 
-def geometric_ensembling(args, networks, test_loader, activations=None):
+def geometric_ensembling(args, networks, activations, datamodule_type, datamodule_hparams):
     """
     Perform ot_model_fusion
 
@@ -19,13 +20,15 @@ def geometric_ensembling(args, networks, test_loader, activations=None):
     """
 
     if args.geom_ensemble_type == 'wts':
-        avg_aligned_layers = get_aligned_layers_wts(args, networks, activations, test_loader=test_loader)
+        avg_aligned_layers = get_aligned_layers_wts(args, networks, datamodule_type, datamodule_hparams)
     elif args.geom_ensemble_type == 'acts':
-        avg_aligned_layers = get_aligned_layers_acts(args, networks, activations, test_loader=test_loader)
+        avg_aligned_layers = get_aligned_layers_acts(args, networks, activations, datamodule_type, datamodule_hparams)
         
-    return helpers.get_network_from_param_list(args, avg_aligned_layers, test_loader)
+    otfused_model = helpers.get_network_from_param_list(args, networks[0], avg_aligned_layers)
 
-def get_aligned_layers_wts(args, networks, activations=None, eps=1e-7, test_loader=None):
+    return otfused_model
+
+def get_aligned_layers_wts(args, networks, datamodule_type, datamodule_hparams, eps=1e-7):
     '''
     Two neural networks that have to be averaged in geometric manner (i.e. layerwise).
     The 1st network is aligned with respect to the other via wasserstein distance.
@@ -39,6 +42,9 @@ def get_aligned_layers_wts(args, networks, activations=None, eps=1e-7, test_load
 
     avg_aligned_layers = []
     T_var = None
+
+    if networks[0].type == ModelType.RESNET18:
+        args.handle_skips = True
 
     if args.handle_skips:
         skip_T_var = None
@@ -145,19 +151,13 @@ def get_aligned_layers_wts(args, networks, activations=None, eps=1e-7, test_load
                 M = ground_metric_object.process(aligned_wt, fc_layer1_weight)
                 print("ground metric is ", M)
             
-            # ASK skip_last_layer
             if args.skip_last_layer and idx == (num_layers - 1):
                 print("Simple averaging of last layer weights. NO transport map needs to be computed")
                 
-                # ASK ensemble step
-                if args.ensemble_step != 0.5:
-                    avg_aligned_layers.append((1 - args.ensemble_step) * aligned_wt + args.ensemble_step * fc_layer1_weight)
-                else:
-                    avg_aligned_layers.append((aligned_wt + fc_layer1_weight)/2)
+                avg_aligned_layers.append((aligned_wt + fc_layer1_weight)/2)
                 
                 return avg_aligned_layers
 
-        # ASK importance, proper_marginals
         if args.importance is None or (idx == num_layers -1):
             mu = helpers.get_histogram(args, 0, mu_cardinality, layer0_name)
             nu = helpers.get_histogram(args, 1, nu_cardinality, layer1_name)
@@ -166,7 +166,7 @@ def get_aligned_layers_wts(args, networks, activations=None, eps=1e-7, test_load
             nu = helpers.get_neuron_importance_histogram(args, fc_layer1_weight_data, is_conv)
             assert args.proper_marginals
         
-        # print("computed mu, nu")
+        print("computed mu, nu")
         print(mu, nu)
 
         cpuM = M.data.cpu().numpy()
@@ -175,23 +175,14 @@ def get_aligned_layers_wts(args, networks, activations=None, eps=1e-7, test_load
         else:
             T = ot.bregman.sinkhorn(mu, nu, cpuM, reg=args.reg)
 
-        if args.gpu_id!=-1:
-            T_var = torch.from_numpy(T).cuda(args.gpu_id).float()
-        else:
-            T_var = torch.from_numpy(T).float()
+        T_var = torch.from_numpy(T).float()
+        print("the transport map is ", T_var)
 
-        # print("the transport map is ", T_var)
-
-        # ASK correction
         if args.correction:
             if not args.proper_marginals:
                 # think of it as m x 1, scaling weights for m linear combinations of points in X
                 
-                if args.gpu_id != -1:
-                    marginals = torch.ones(T_var.shape[0]).cuda(args.gpu_id) / T_var.shape[0]
-                
-                else:
-                    marginals = torch.ones(T_var.shape[0]) / T_var.shape[0]
+                marginals = torch.ones(T_var.shape[0]) / T_var.shape[0]
                 
                 marginals = torch.diag(1.0/(marginals + eps))  # take inverse
                 T_var = torch.matmul(T_var, marginals)
@@ -210,19 +201,12 @@ def get_aligned_layers_wts(args, networks, activations=None, eps=1e-7, test_load
                 print(T_var.sum(dim=0))
                 # assert (T_var.sum(dim=0) == torch.ones(T_var.shape[1], dtype=T_var.dtype).to(device)).all()
 
-        if args.debug:
-            if idx == (num_layers - 1):
-                print("there goes the last transport map: \n ", T_var)
-            else:
-                print("there goes the transport map at layer {}: \n ".format(idx), T_var)
-
             print("Ratio of trace to the matrix sum: ", torch.trace(T_var) / torch.sum(T_var))
 
         print("Ratio of trace to the matrix sum: ", torch.trace(T_var) / torch.sum(T_var))
         print("Here, trace is {} and matrix sum is {} ".format(torch.trace(T_var), torch.sum(T_var)))
         setattr(args, 'trace_sum_ratio_{}'.format(layer0_name), (torch.trace(T_var) / torch.sum(T_var)).item())
 
-        # ASK past_correction
         if args.past_correction:
             print("this is past correction for weight mode")
             print("Shape of aligned wt is ", aligned_wt.shape)
@@ -232,11 +216,7 @@ def get_aligned_layers_wts(args, networks, activations=None, eps=1e-7, test_load
             t_fc0_model = torch.matmul(T_var.t(), fc_layer0_weight_data.view(fc_layer0_weight_data.shape[0], -1))
 
         # Average the weights of aligned first layers
-        if args.ensemble_step != 0.5:
-            geometric_fc = ((1-args.ensemble_step) * t_fc0_model +
-                            args.ensemble_step * fc_layer1_weight_data.view(fc_layer1_weight_data.shape[0], -1))
-        else:
-            geometric_fc = (t_fc0_model + fc_layer1_weight_data.view(fc_layer1_weight_data.shape[0], -1))/2
+        geometric_fc = (t_fc0_model + fc_layer1_weight_data.view(fc_layer1_weight_data.shape[0], -1))/2
         
         if is_conv and layer_shape != geometric_fc.shape:
             geometric_fc = geometric_fc.view(layer_shape)
@@ -248,7 +228,7 @@ def get_aligned_layers_wts(args, networks, activations=None, eps=1e-7, test_load
             if is_conv and layer_shape != t_fc0_model.shape:
                 t_fc0_model = t_fc0_model.view(layer_shape)
             model0_aligned_layers.append(t_fc0_model)
-            _, acc = helpers.update_model(args, networks[0], model0_aligned_layers, test=True, test_loader=test_loader, idx=0)
+            _, acc = helpers.update_model(args, networks[0], model0_aligned_layers, datamodule_type, datamodule_hparams)
             print("For layer idx {}, accuracy of the updated model is {}".format(idx, acc))
             setattr(args, 'model0_aligned_acc_layer_{}'.format(str(idx)), acc)
             if idx == (num_layers - 1):
@@ -256,7 +236,7 @@ def get_aligned_layers_wts(args, networks, activations=None, eps=1e-7, test_load
 
     return avg_aligned_layers
 
-def get_aligned_layers_acts(args, networks, activations, eps=1e-7, test_loader=None):
+def get_aligned_layers_acts(args, networks, activations, datamodule_type, datamodule_hparams, eps=1e-7):
     '''
     Average based on the activation vector over data samples. Obtain the transport map,
     and then based on which align the nodes and average the weights!
@@ -283,13 +263,8 @@ def get_aligned_layers_acts(args, networks, activations, eps=1e-7, test_loader=N
     num_layers = len(list(zip(networks[0].parameters(), networks[1].parameters())))
     ground_metric_object = GroundMetric(args)
 
-    if args.update_acts or args.eval_aligned:
+    if args.eval_aligned:
         model0_aligned_layers = []
-
-    if args.gpu_id==-1:
-        device = torch.device('cpu')
-    else:
-        device = torch.device('cuda:{}'.format(args.gpu_id))
 
     networks_named_params = list(zip(networks[0].named_parameters(), networks[1].named_parameters()))
     idx = 0
@@ -308,7 +283,11 @@ def get_aligned_layers_acts(args, networks, activations, eps=1e-7, test_loader=N
         layer0_name_reduced = helpers.reduce_layer_name(layer0_name)
         layer1_name_reduced = helpers.reduce_layer_name(layer1_name)
 
+        print(layer0_name, layer1_name)
+        print(layer0_name_reduced, layer1_name_reduced)
+
         print("let's see the difference in layer names", layer0_name.replace('.' + layer0_name.split('.')[-1], ''), layer0_name_reduced)
+        print(activations[0])
         print(activations[0][layer0_name.replace('.' + layer0_name.split('.')[-1], '')].shape, 'shape of activations generally')
         
         # for conv layer I need to make the act_num_samples dimension the last one, but it has the intermediate dimensions for height and width of channels, so that won't work.
@@ -392,12 +371,6 @@ def get_aligned_layers_acts(args, networks, activations, eps=1e-7, test_loader=N
                     aligned_wt = aligned_wt.contiguous().view(aligned_wt.shape[0], -1)
                 else:
                     aligned_wt = torch.matmul(fc_layer0_weight.data, T_var)
-
-            if args.update_acts:
-                assert args.second_model_name is None
-                activations_0, activations_1 = helpers.get_updated_acts_v0(args, layer_shape, aligned_wt,
-                                                                    model0_aligned_layers, networks,
-                                                                    test_loader, [layer0_name, layer1_name])
                 
         if args.importance is None or (idx == num_layers -1):
             mu = helpers.get_histogram(args, 0, mu_cardinality, layer0_name)
@@ -411,29 +384,18 @@ def get_aligned_layers_acts(args, networks, activations, eps=1e-7, test_loader=N
         print(mu, nu)
 
         print("Refactored ground metric calc")
-        M0, M1 = helpers.process_ground_metric_from_acts(args, is_conv, ground_metric_object,[activations_0, activations_1])
+        M0 = helpers.process_ground_metric_from_acts(args, is_conv, ground_metric_object,[activations_0, activations_1])
 
         print("# of ground metric features in 0 is  ", (activations_0.view(activations_0.shape[0], -1)).shape[1])
         print("# of ground metric features in 1 is  ", (activations_1.view(activations_1.shape[0], -1)).shape[1])
 
-        if args.same_model!=-1:
-            print("Checking ground metric matrix in case of same models")
-            if not args.gromov:
-                print(M0)
-            else:
-                print(M0, M1)
-
+        
         # ASK skip last_layer + skip_last_layer_type
         if args.skip_last_layer and idx == (num_layers - 1):
 
             if args.skip_last_layer_type == 'average':
                 print("Simple averaging of last layer weights. NO transport map needs to be computed")
-                if args.ensemble_step != 0.5:
-                    print("taking baby steps (even in skip) ! ")
-                    avg_aligned_layers.append((1-args.ensemble_step) * aligned_wt +
-                                              args.ensemble_step * fc_layer1_weight)
-                else:
-                    avg_aligned_layers.append(((aligned_wt + fc_layer1_weight)/2))
+                avg_aligned_layers.append(((aligned_wt + fc_layer1_weight)/2))
             
             elif args.skip_last_layer_type == 'second':
                 print("Just giving the weights of the second model. NO transport map needs to be computed")
@@ -443,48 +405,38 @@ def get_aligned_layers_acts(args, networks, activations, eps=1e-7, test_loader=N
 
         print("ground metric (m0) is ", M0)
 
-        T_var = helpers.get_current_layer_transport_map(args, mu, nu, M0, M1, idx=idx, layer_shape=layer_shape, eps=eps, layer_name=layer0_name)
+        T_var = helpers.get_current_layer_transport_map(args, mu, nu, M0, idx=idx, layer_shape=layer_shape, eps=eps, layer_name=layer0_name)
 
-        T_var, marginals = helpers.compute_marginals(args, T_var, device, eps=eps)
-
-        if args.debug:
-            if idx == (num_layers - 1):
-                print("there goes the last transport map: \n ", T_var)
-                print("and before marginals it is ", T_var/marginals)
-            else:
-                print("there goes the transport map at layer {}: \n ".format(idx), T_var)
+        T_var, marginals = helpers.compute_marginals(args, T_var, eps=eps)
 
         print("Ratio of trace to the matrix sum: ", torch.trace(T_var) / torch.sum(T_var))
         print("Here, trace is {} and matrix sum is {} ".format(torch.trace(T_var), torch.sum(T_var)))
         setattr(args, 'trace_sum_ratio_{}'.format(layer0_name), (torch.trace(T_var) / torch.sum(T_var)).item())
 
-        if args.past_correction:
-            print("Shape of aligned wt is ", aligned_wt.shape)
-            print("Shape of fc_layer0_weight_data is ", fc_layer0_weight_data.shape)
+        print("Shape of aligned wt is ", aligned_wt.shape)
+        print("Shape of fc_layer0_weight_data is ", fc_layer0_weight_data.shape)
 
+        if args.past_correction:
             t_fc0_model = torch.matmul(T_var.t(), aligned_wt.contiguous().view(aligned_wt.shape[0], -1))
         else:
             t_fc0_model = torch.matmul(T_var.t(), fc_layer0_weight_data.view(fc_layer0_weight_data.shape[0], -1))
 
         # Average the weights of aligned first layers
-        if args.ensemble_step != 0.5:
-            print("taking baby steps! ")
-            geometric_fc = (1 - args.ensemble_step) * t_fc0_model + \
-                           args.ensemble_step * fc_layer1_weight_data.view(fc_layer1_weight_data.shape[0], -1)
-        else:
-            geometric_fc = (t_fc0_model + fc_layer1_weight_data.view(fc_layer1_weight_data.shape[0], -1)) / 2
+        geometric_fc = (t_fc0_model + fc_layer1_weight_data.view(fc_layer1_weight_data.shape[0], -1)) / 2
         
         if is_conv and layer_shape != geometric_fc.shape:
             geometric_fc = geometric_fc.view(layer_shape)
+        
         avg_aligned_layers.append(geometric_fc)
 
-        if args.update_acts or args.eval_aligned:
+        if args.eval_aligned:
             assert args.second_model_name is None
         
             if is_conv and layer_shape != t_fc0_model.shape:
                 t_fc0_model = t_fc0_model.view(layer_shape)
+            
             model0_aligned_layers.append(t_fc0_model)
-            _, acc = helpers.update_model(args, networks[0], model0_aligned_layers, test=True, test_loader=test_loader, idx=0)
+            _, acc = helpers.update_model(args, networks[0], model0_aligned_layers, datamodule_type, datamodule_hparams)
             print("For layer idx {}, accuracy of the updated model is {}".format(idx, acc))
             setattr(args, 'model0_aligned_acc_layer_{}'.format(str(idx)), acc)
             if idx == (num_layers - 1):
