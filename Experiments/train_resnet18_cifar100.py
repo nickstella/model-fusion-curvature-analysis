@@ -12,10 +12,12 @@ def train_resnet18_cifar100(min_epochs=0, max_epochs=1, batch_size=32):
 
     model_type = ModelType.RESNET18
     model_hparams = {'num_classes': 100, 'num_channels': 3, 'bias': False}
+    lr = 0.01
+    lightning_params = {'optimizer': 'sgd', 'lr': lr, 'momentum': 0.9, 'weight_decay': 0.0001, 'lr_scheduler': 'plateau', 'lr_decay_factor': 0.1, 'lr_monitor_metric': 'val_loss'}
 
     wandb_tags = ['RESNET-18', 'CIFAR_100', f"Batch size {batch_size}"]
 
-    model, datamodule, trainer = setup_training(f'RESNET-18 CIFAR-100 B{batch_size}', model_type, model_hparams, datamodule_type, datamodule_hparams, min_epochs=min_epochs, max_epochs=max_epochs, wandb_tags=wandb_tags)
+    model, datamodule, trainer = setup_training(f'RESNET-18 CIFAR-100 B{batch_size}', model_type, model_hparams, lightning_params, datamodule_type, datamodule_hparams, min_epochs=min_epochs, max_epochs=max_epochs, wandb_tags=wandb_tags)
 
     datamodule.prepare_data()
 

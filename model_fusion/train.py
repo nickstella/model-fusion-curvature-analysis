@@ -3,6 +3,7 @@ import lightning as L
 from lightning import Callback, Trainer
 from pytorch_lightning.loggers import WandbLogger
 from lightning.pytorch.callbacks.early_stopping import EarlyStopping
+from lightning.pytorch.callbacks import ModelCheckpoint
 import wandb
 from model_fusion.config import WANDB_PROJECT_NAME
 from model_fusion.datasets import DataModuleType
@@ -32,6 +33,9 @@ def setup_training(experiment_name: str,
         monitor = kwargs.pop('monitor', 'val_loss')
         patience = kwargs.pop('patience', 3)
         callbacks.append(EarlyStopping(monitor=monitor, patience=patience))
+
+    checkpoint_callback = ModelCheckpoint(monitor="val_accuracy", mode="max")
+    callbacks.append(checkpoint_callback)
     # Create the trainer
     trainer = L.Trainer(min_epochs=min_epochs, max_epochs=max_epochs, logger=logger, callbacks=callbacks, *args, **kwargs)
     return model, datamodule, trainer
@@ -41,12 +45,12 @@ def setup_testing(experiment_name: str,
                   datamodule_type: DataModuleType, datamodule_hparams: dict,
                   wandb_tags: List[str],
                   *args, **kwargs):
-    
+
     # Create the datamodule
     datamodule = datamodule_type.get_data_module(**datamodule_hparams)
     # Create the logger
     logger_config = model_hparams | datamodule_hparams | {'model_type': model_type, 'datamodule_type': datamodule_type}
-    logger = get_wandb_logger(experiment_name, logger_config, wandb_tags)  
+    logger = get_wandb_logger(experiment_name, logger_config, wandb_tags)
     # Create the trainer
     trainer = L.Trainer(max_epochs=0, logger=logger, *args, **kwargs)
     return datamodule, trainer

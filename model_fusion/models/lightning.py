@@ -17,10 +17,10 @@ class BaseModel(lightning.LightningModule):
         self.loss_module = loss_module()
         self.train_losses = []
         self.accuracy = Accuracy(task='multiclass', num_classes=model_hparams['num_classes'])
-        
+
         # Exports the hyperparameters to a YAML file, and create "self.hparams" namespace
         self.save_hyperparameters()
-        
+
         self.model_type = model_type
         self.model_hparams = model_hparams
         self.model = model_type.get_model(**model_hparams)
@@ -108,7 +108,12 @@ class BaseModel(lightning.LightningModule):
 
     def configure_plateau_lr(self, optimizer):
         lr_decay_factor = self.lightning_params.get('lr_decay_factor', 0.1)
-        return torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor=lr_decay_factor, patience=3, verbose=True)
+        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor=lr_decay_factor, patience=3, verbose=True)
+        lr_monitor_metric = self.lightning_params.get('lr_monitor_metric', 'val_loss')
+        return {
+            'scheduler': scheduler,
+            'monitor': lr_monitor_metric
+        }
 
     def log_metrics(self, metrics, train, prog_bar=True):
         if train:
