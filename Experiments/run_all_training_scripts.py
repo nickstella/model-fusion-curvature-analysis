@@ -6,7 +6,7 @@ from Experiments.train_vgg11_cifar10 import train_vgg11_cifar10
 from Experiments.train_vgg11_cifar100 import train_vgg11_cifar100
 
 
-IS_FILIPPO = False
+IS_FILIPPO = True
 
 
 if __name__ == '__main__':

@@ -13,7 +13,7 @@ class dotdict(dict):
 def get_base_args():
     parameters = {
         # default parameters NOT MODIFY
-        'eval_aligned': False, # evaluate aligned parent model 0 aligned wrt to parent model 1
+        'eval_aligned': True, # evaluate aligned parent model 0 aligned wrt to parent model 1
         'num_models': 2,
         'width_ratio': 1, # ratio of the widths of the hidden layers between the two models
         'handle_skips': True, # handle shortcut skips in resnet which decrease dimension

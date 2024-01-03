@@ -11,14 +11,14 @@ import model_fusion.ot_fusion.wasserstein_helpers as helpers
 def get_otfused_model(args, networks, activations, datamodule_type, datamodule_hparams):
 
     if args.geom_ensemble_type == 'wts':
-        avg_aligned_layers = get_aligned_layers_wts(args, networks, datamodule_type, datamodule_hparams)
+        avg_aligned_layers, aligned_base_model  = get_aligned_layers_wts(args, networks, datamodule_type, datamodule_hparams)
     
     elif args.geom_ensemble_type == 'acts':
-        avg_aligned_layers = get_aligned_layers_acts(args, networks, activations, datamodule_type, datamodule_hparams)
+        avg_aligned_layers, aligned_base_model = get_aligned_layers_acts(args, networks, activations, datamodule_type, datamodule_hparams)
         
     otfused_model = helpers.get_network_from_param_list(networks[0], avg_aligned_layers)
 
-    return otfused_model
+    return otfused_model, aligned_base_model
 
 def get_aligned_layers_wts(args, networks, datamodule_type, datamodule_hparams, eps=1e-7):
     '''
@@ -215,9 +215,11 @@ def get_aligned_layers_wts(args, networks, datamodule_type, datamodule_hparams, 
                 t_fc0_model = t_fc0_model.view(layer_shape)
             
             model0_aligned_layers.append(t_fc0_model)
-            helpers.eval_aligned_model(networks[0], model0_aligned_layers, datamodule_type, datamodule_hparams)
+    
+    if args.eval_aligned:        
+        aligned_base_model = helpers.eval_aligned_model(networks[0], model0_aligned_layers, datamodule_type, datamodule_hparams)
 
-    return avg_aligned_layers
+    return avg_aligned_layers, aligned_base_model 
 
 def get_aligned_layers_acts(args, networks, activations, datamodule_type, datamodule_hparams, eps=1e-7):
     '''
@@ -419,7 +421,6 @@ def get_aligned_layers_acts(args, networks, activations, datamodule_type, datamo
                 t_fc0_model = t_fc0_model.view(layer_shape)
             
             model0_aligned_layers.append(t_fc0_model)
-            helpers.eval_aligned_model(args, networks[0], model0_aligned_layers, datamodule_type, datamodule_hparams)
             
         incoming_layer_aligned = False
         next_aligned_wt_reshaped = None
@@ -436,6 +437,11 @@ def get_aligned_layers_acts(args, networks, activations, datamodule_type, datamo
         cpuM = None
 
         idx += 1
+
+    if args.eval_aligned:        
+        aligned_base_model = helpers.eval_aligned_model(networks[0], model0_aligned_layers, datamodule_type, datamodule_hparams)
+
+    print = aligned_base_model
     
-    return avg_aligned_layers
+    return avg_aligned_layers, aligned_base_model
 
