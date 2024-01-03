@@ -18,7 +18,7 @@ def run_lmc(
     datamodule.prepare_data()
     datamodule.setup('fit')
 
-    loss_model1,loss_model2,barrier, alpha_max = lmc.compute_losses_and_barrier(modelA, modelB, datamodule, granularity=5)
+    loss_model1,loss_model2,barrier, alpha_max = lmc.compute_losses_and_barrier(modelA, modelB, datamodule, granularity=20)
     print(f"Loss model 1: {loss_model1:.5f}, Loss model 2: {loss_model2:.5f}, Alpha argmax: {alpha_max:.5f}")
     print(f"Barrier: {barrier:.5f}")
 

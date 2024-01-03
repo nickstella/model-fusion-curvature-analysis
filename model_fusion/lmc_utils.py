@@ -79,6 +79,7 @@ def compute_loss(model,datamodule):
 
     # Iterate over the training data and compute loss
     for batch in datamodule.train_dataloader():
+       batch = [x.to(model.device) for x in batch]
        loss, y_hat = model.f_step(batch, 0, train=True, log_metrics=False)
        total_loss += loss.item()*len(batch[0]) # Multiply by batch size
 
