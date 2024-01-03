@@ -37,7 +37,7 @@ def setup_training(experiment_name: str,
     checkpoint_callback = ModelCheckpoint(monitor="val_accuracy", mode="max")
     callbacks.append(checkpoint_callback)
     # Create the trainer
-    trainer = L.Trainer(min_epochs=min_epochs, max_epochs=max_epochs, logger=logger, callbacks=callbacks, deterministic=True, *args, **kwargs)
+    trainer = L.Trainer(min_epochs=min_epochs, max_epochs=max_epochs, logger=logger, callbacks=callbacks, deterministic='warn', *args, **kwargs)
     return model, datamodule, trainer
 
 def setup_testing(experiment_name: str,
