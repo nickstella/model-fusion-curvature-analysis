@@ -1,4 +1,5 @@
 import wandb
+from lightning.pytorch import seed_everything
 
 from model_fusion.train import setup_training
 from model_fusion.datasets import DataModuleType
@@ -6,15 +7,17 @@ from model_fusion.models import ModelType
 from model_fusion.config import BASE_DATA_DIR
 
 
-def train_vgg11_mnist(min_epochs=0, max_epochs=1, batch_size=32):
+def train_vgg11_mnist(min_epochs=20, max_epochs=100, batch_size=32, model_seed=42, data_seed=42, data_augmentation=False):
+    seed_everything(model_seed, workers=True)
+
     datamodule_type = DataModuleType.MNIST
     # MNIST images are 28x28, so we need to resize it to 32x32 to match the input size of VGG-11 due to it having 5 maxpool layers
-    datamodule_hparams = {'batch_size': batch_size, 'data_dir': BASE_DATA_DIR, 'resize': (32, 32)}
+    datamodule_hparams = {'batch_size': batch_size, 'data_dir': BASE_DATA_DIR, 'resize': (32, 32), 'seed': data_seed, 'data_augmentation': data_augmentation}
 
     model_type = ModelType.VGG11
     model_hparams = {'num_classes': 10, 'num_channels': 1, 'bias': False}
-    lr = 0.01
-    lightning_params = {'optimizer': 'sgd', 'lr': lr, 'momentum': 0.9, 'weight_decay': 0.0001, 'lr_scheduler': 'plateau', 'lr_decay_factor': 0.1, 'lr_monitor_metric': 'val_loss'}
+    lr = 0.1 * (batch_size / 32) * 0.25
+    lightning_params = {'optimizer': 'sgd', 'lr': lr, 'momentum': 0.9, 'weight_decay': 0.0001, 'lr_scheduler': 'plateau', 'lr_decay_factor': 0.1, 'lr_monitor_metric': 'val_loss', 'model_seed': model_seed, 'data_seed': data_seed}
 
     wandb_tags = ['VGG-11', 'MNIST', f"Batch size {batch_size}"]
 

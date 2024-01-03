@@ -24,14 +24,14 @@ def setup_training(experiment_name: str,
     # Create the datamodule
     datamodule = datamodule_type.get_data_module(**datamodule_hparams)
     # Create the logger
-    logger_config = model_hparams | datamodule_hparams | {'min_epochs': min_epochs, 'max_epochs': max_epochs, 'model_type': model_type, 'datamodule_type': datamodule_type, 'early_stopping': early_stopping}
+    logger_config = {'model_hparams': model_hparams} | {'datamodule_hparams': datamodule_hparams} | {'lightning_params': lightning_params} | {'min_epochs': min_epochs, 'max_epochs': max_epochs, 'model_type': model_type, 'datamodule_type': datamodule_type, 'early_stopping': early_stopping}
     logger = get_wandb_logger(experiment_name, logger_config, wandb_tags)
     # Callbacks for the trainer
     callbacks = []
     # Add early stopping callback
     if early_stopping:
         monitor = kwargs.pop('monitor', 'val_loss')
-        patience = kwargs.pop('patience', 10)
+        patience = kwargs.pop('patience', 15)
         callbacks.append(EarlyStopping(monitor=monitor, patience=patience))
 
     checkpoint_callback = ModelCheckpoint(monitor="val_accuracy", mode="max")

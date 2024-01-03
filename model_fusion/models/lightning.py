@@ -108,7 +108,7 @@ class BaseModel(lightning.LightningModule):
 
     def configure_plateau_lr(self, optimizer):
         lr_decay_factor = self.lightning_params.get('lr_decay_factor', 0.1)
-        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor=lr_decay_factor, patience=10, verbose=True)
+        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor=lr_decay_factor, patience=7, verbose=True)
         lr_monitor_metric = self.lightning_params.get('lr_monitor_metric', 'val_loss')
         return {
             'scheduler': scheduler,
