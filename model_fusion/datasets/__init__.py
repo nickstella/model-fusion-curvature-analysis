@@ -5,7 +5,7 @@ from pl_bolts.datamodules import MNISTDataModule, CIFAR10DataModule
 from torchvision.transforms import Resize, v2
 
 from model_fusion.datasets.cifar100_datamodule import CIFAR100DataModule
-
+from model_fusion.config import NUM_WORKERS
 
 class DataModuleType(enum.Enum):
     MNIST = 'mnist'
@@ -21,9 +21,9 @@ class DataModuleType(enum.Enum):
             kwargs['test_transforms'] = transforms
 
         if self == DataModuleType.MNIST:
-            return MNISTDataModule(*args, **kwargs)
+            return MNISTDataModule(num_workers=NUM_WORKERS, *args, **kwargs)
         if self == DataModuleType.CIFAR10:
-            return CIFAR10DataModule(*args, **kwargs)
+            return CIFAR10DataModule(normalize=True, val_split=0.1, num_workers=NUM_WORKERS, *args, **kwargs)
         if self == DataModuleType.CIFAR100:
-            return CIFAR100DataModule(*args, **kwargs)
+            return CIFAR100DataModule(normalize=True, val_split=0.1, num_workers=NUM_WORKERS, *args, **kwargs)
         raise ValueError(f'Unknown dataset: {self}')

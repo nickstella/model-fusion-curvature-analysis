@@ -31,7 +31,7 @@ def setup_training(experiment_name: str,
     # Add early stopping callback
     if early_stopping:
         monitor = kwargs.pop('monitor', 'val_loss')
-        patience = kwargs.pop('patience', 3)
+        patience = kwargs.pop('patience', 10)
         callbacks.append(EarlyStopping(monitor=monitor, patience=patience))
 
     checkpoint_callback = ModelCheckpoint(monitor="val_accuracy", mode="max")
