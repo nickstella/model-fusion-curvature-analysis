@@ -23,7 +23,7 @@ def run_pyhessian(
     hessian_dataloader = []
     for i, (inputs, labels) in enumerate(datamodule.train_dataloader()):
         hessian_dataloader.append((inputs.cuda(), labels.cuda()))
-        if i ==  len(datamodule.train_dataloader()) - 1:
+        if i ==  5:
             break
 
     criterion = nn.CrossEntropyLoss()
