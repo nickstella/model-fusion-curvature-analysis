@@ -83,7 +83,9 @@ def compute_activations_across_models(base_models, train_loader, num_samples):
     # Run the same data samples ('num_samples' many) across all the models
     num_samples_processed = 0
     for data, target in train_loader:
-        
+        data=data.to(models[0].device)
+        target=target.to(models[0].device)
+
         for model in models:
             model(data)
         

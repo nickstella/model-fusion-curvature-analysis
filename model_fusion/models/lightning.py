@@ -10,7 +10,7 @@ from model_fusion.models import ModelType
 
 class BaseModel(lightning.LightningModule):
     """Base model for all models in this project"""
-    def __init__(self, model_type: ModelType, model_hparams: Dict, loss_module: nn.Module = nn.CrossEntropyLoss,
+    def __init__(self, model_type: ModelType, model_hparams: Dict, loss_module: nn.Module = nn.CrossEntropyLoss, model: nn.Module = None,
                  *args, **kwargs):
         super().__init__()
         self.lightning_params = kwargs
@@ -23,7 +23,10 @@ class BaseModel(lightning.LightningModule):
 
         self.model_type = model_type
         self.model_hparams = model_hparams
-        self.model = model_type.get_model(**model_hparams)
+        if model is None:
+            self.model = model_type.get_model(**model_hparams)
+        else:
+            self.model = model
 
     def forward(self, x):
         """Forward pass, returns logits"""

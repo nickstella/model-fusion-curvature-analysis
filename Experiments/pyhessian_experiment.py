@@ -2,16 +2,21 @@ from model_fusion.datasets import DataModuleType
 from model_fusion.models.lightning import BaseModel
 from model_fusion.config import BASE_DATA_DIR, CHECKPOINT_DIR
 from pyhessian import hessian
-from pyhessian import density_plot
+from model_fusion.plot_density import get_esd_plot
 import torch.nn as nn
 import numpy as np
 
 def run_pyhessian(
         datamodule_type: DataModuleType, 
-        model: BaseModel
+        model: BaseModel, 
+        num_batches : int = 10,
+        compute_top_eigenvalues: bool = True,
+        compute_trace: bool = True,
+        compute_density: bool = False,
+        figure_name: str = 'example.pdf'
     ):
 
-    datamodule_hparams = {'batch_size': 512, 'data_dir': BASE_DATA_DIR}
+    datamodule_hparams = {'batch_size': 32, 'data_dir': BASE_DATA_DIR}
     datamodule = datamodule_type.get_data_module(**datamodule_hparams)
     datamodule.prepare_data()
     datamodule.setup('fit')
@@ -19,7 +24,7 @@ def run_pyhessian(
     hessian_dataloader = []
     for i, (inputs, labels) in enumerate(datamodule.train_dataloader()):
         hessian_dataloader.append((inputs.cuda(), labels.cuda()))
-        if i ==  5:
+        if i ==  num_batches:
             break
 
     criterion = nn.CrossEntropyLoss()
@@ -27,21 +32,19 @@ def run_pyhessian(
     model = model.cuda()
     model.eval()
     
-    hessian_comp = hessian(model,
-                           criterion,
-                           dataloader=hessian_dataloader,
-                           cuda=True)
+    hessian_comp = hessian(model, criterion, dataloader=hessian_dataloader, cuda=True)
     
-    top_eigenvalues, top_eigenvector = hessian_comp.eigenvalues()
-    print("The top Hessian eigenvalue of this model is %.4f"%top_eigenvalues[-1])
+    if compute_top_eigenvalues:
+        top_eigenvalues, _ = hessian_comp.eigenvalues(top_n=1)
+        print("The top Hessian eigenvalue of this model is %.4f"%top_eigenvalues[-1])
 
-    trace = hessian_comp.trace()
+    if compute_trace:
+        trace = hessian_comp.trace()
+        print('\n***Trace: ', np.mean(trace))
 
-    print('\n***Trace: ', np.mean(trace))
-
-    density_eigen, density_weight = hessian_comp.density()
-
-    density_plot.get_esd_plot(density_eigen, density_weight)
+    if compute_density:
+        density_eigen, density_weight = hessian_comp.density()
+        get_esd_plot(density_eigen, density_weight,figure_name)
     
 
 if __name__ == '__main__':

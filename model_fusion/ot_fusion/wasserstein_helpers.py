@@ -162,12 +162,12 @@ def check_layer_sizes(args, layer_idx, shape1, shape2, num_layers):
     else: 
         raise ValueError(f"Different layer widths: {shape1} and {shape2}")
 
-def compute_marginals(args, T_var, eps=1e-7):
+def compute_marginals(args, T_var, eps=1e-7,device='cpu'):
     if args.correction:
         if not args.proper_marginals:
             
             # think of it as m x 1, scaling weights for m linear combinations of points in X
-            marginals = torch.ones(T_var.shape)
+            marginals = torch.ones(T_var.shape).to(device)
 
             marginals = torch.matmul(T_var, marginals)
             marginals = 1 / (marginals + eps)
@@ -197,7 +197,7 @@ def compute_marginals(args, T_var, eps=1e-7):
 
     return T_var, marginals
 
-def get_current_layer_transport_map(args, mu, nu, M0, idx, layer_shape, eps=1e-7, layer_name=None):
+def get_current_layer_transport_map(args, mu, nu, M0, idx, layer_shape, eps=1e-7, layer_name=None,device='cpu'):
 
     cpuM = M0.data.cpu().numpy()
     
@@ -216,7 +216,7 @@ def get_current_layer_transport_map(args, mu, nu, M0, idx, layer_shape, eps=1e-7
 
     sanity_check_tmap(T)
 
-    T_var = torch.from_numpy(T).float()
+    T_var = torch.from_numpy(T).to(device).float()
 
     print(
         "Tmap stats (before correction) \n: For layer {}, frobenius norm from the joe's transport map is {}".format(

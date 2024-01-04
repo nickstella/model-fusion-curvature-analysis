@@ -2,23 +2,23 @@
 source: https://github.com/amirgholami/PyHessian
 '''
 
-import math
 import numpy as np
 import matplotlib as mpl
 mpl.use('Agg')
 import matplotlib.pyplot as plt
 
 
-def get_esd_plot(eigenvalues, weights):
+def get_esd_plot(eigenvalues, weights, figure_name='example.pdf'):
+    plt.figure()  
     density, grids = density_generate(eigenvalues, weights)
     plt.semilogy(grids, density + 1.0e-7)
     plt.ylabel('Density (Log Scale)', fontsize=14, labelpad=10)
-    plt.xlabel('Eigenvlaue', fontsize=14, labelpad=10)
+    plt.xlabel('Eigenvalue', fontsize=14, labelpad=10)
     plt.xticks(fontsize=12)
     plt.yticks(fontsize=12)
     plt.axis([np.min(eigenvalues) - 1, np.max(eigenvalues) + 1, None, None])
     plt.tight_layout()
-    plt.savefig('example.pdf')
+    plt.savefig(figure_name)
 
 def density_generate(eigenvalues,
                      weights,

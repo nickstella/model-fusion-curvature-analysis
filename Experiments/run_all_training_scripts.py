@@ -33,7 +33,7 @@ if __name__ == '__main__':
                     batch_size=batch_size, model_seed=model_seed, data_seed=data_seed)
 
     if IS_FILIPPO:
-        for batch_size in batch_sizes[1:]:
+        for batch_size in batch_sizes[2:]:
             for model_seed, data_seed in seeds:
                 train_resnet18_cifar10(
                     min_epochs=min_epochs_cifar, max_epochs=max_epochs_cifar,

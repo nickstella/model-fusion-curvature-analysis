@@ -165,7 +165,7 @@ def get_aligned_layers_wts(args, networks, datamodule_type, datamodule_hparams, 
         else:
             T = ot.bregman.sinkhorn(mu, nu, cpuM, reg=args.reg)
 
-        T_var = torch.from_numpy(T).float()
+        T_var = torch.from_numpy(T).to(networks[0].device).float()
         print("the transport map is ", T_var)
 
         if args.correction:
@@ -393,8 +393,8 @@ def get_aligned_layers_acts(args, networks, activations, datamodule_type, datamo
 
         # print("ground metric (m0) is ", M0)
 
-        T_var = helpers.get_current_layer_transport_map(args, mu, nu, M0, idx=idx, layer_shape=layer_shape, eps=eps, layer_name=layer0_name)
-        T_var, marginals = helpers.compute_marginals(args, T_var, eps=eps)
+        T_var = helpers.get_current_layer_transport_map(args, mu, nu, M0, idx=idx, layer_shape=layer_shape, eps=eps, layer_name=layer0_name,device=networks[0].device)
+        T_var, marginals = helpers.compute_marginals(args, T_var, eps=eps,device=networks[0].device)
 
         print("the transport map is ", T_var)
         # print("Ratio of trace to the matrix sum: ", torch.trace(T_var) / torch.sum(T_var))
