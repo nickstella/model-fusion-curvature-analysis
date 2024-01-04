@@ -20,16 +20,21 @@ def run_pyhessian(
     datamodule.prepare_data()
     datamodule.setup('fit')
     
-    data = []
-    for batch in datamodule.train_dataloader():
-        x, y = batch
-        data.append((x.cuda(), y.cuda()))
+    hessian_dataloader = []
+    for i, (inputs, labels) in enumerate(datamodule.train_dataloader()):
+        hessian_dataloader.append((inputs.cuda(), labels.cuda()))
+        if i ==  len(datamodule.train_dataloader()) - 1:
+            break
 
     criterion = nn.CrossEntropyLoss()
-    model.eval()
+
     model = model.cuda()
+    model.eval()
     
-    hessian_comp = hessian(model, criterion, data=data, cuda=True)
+    hessian_comp = hessian(model,
+                           criterion,
+                           dataloader=hessian_dataloader,
+                           cuda=True)
     
     return hessian_comp
 

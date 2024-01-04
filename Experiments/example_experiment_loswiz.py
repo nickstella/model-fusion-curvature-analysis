@@ -7,13 +7,14 @@ from model_fusion.config import BASE_DATA_DIR
 import torch
 
 
-def run_experiment(min_epochs=3, max_epochs=5, batch_size=32):
+def run_experiment(min_epochs=1, max_epochs=3, batch_size=32):
     datamodule_type = DataModuleType.CIFAR10
     datamodule_hparams = {'batch_size': batch_size, 'data_dir': BASE_DATA_DIR}
 
     model_type = ModelType.VGG11
     model_hparams = {'num_classes': 10, 'num_channels': 3, 'bias': False}
-    lightning_params = {'optimizer': 'sgd', 'lr': 0.1, 'momentum': 0.9, 'weight_decay': 0.0001, 'lr_scheduler': 'multistep', 'lr_decay_factor': 0.1, 'lr_decay_epochs': [150, 250]}
+    lr = 0.1 * (batch_size / 32) * 0.025
+    lightning_params = {'optimizer': 'sgd', 'lr': lr, 'momentum': 0.9, 'weight_decay': 0.0001, 'lr_scheduler': 'plateau', 'lr_decay_factor': 0.1, 'lr_monitor_metric': 'val_loss'}
     wandb_tags = ['Loss', 'visualization', 'example']
 
     model, datamodule, trainer = setup_training('Saving plot for losviz', model_type, model_hparams, lightning_params, datamodule_type, datamodule_hparams, min_epochs=min_epochs, max_epochs=max_epochs, wandb_tags=wandb_tags)
