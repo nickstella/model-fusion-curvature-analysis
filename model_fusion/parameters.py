@@ -18,16 +18,16 @@ def get_base_args():
         'width_ratio': 1, # ratio of the widths of the hidden layers between the two models
         'handle_skips': True, # handle shortcut skips in resnet which decrease dimension
         'exact': True, # compute exact optimal transport (True = emd, False = sinkhorn)
-        'activation_seed': 42, # seed for computing activations
+        'activation_seed': 21, # seed for computing activations
         'activation_histograms': True,
         'ground_metric': 'euclidean', # euclidean, cosine
         'ground_metric_normalize': 'none', # log, max, none, median, mean
-        'same_model': True, # if the two models are the same
+        'same_model': False, # if the two models are the same
         
         # OT alignment settings 
         'geom_ensemble_type': 'acts', # wts, acts - fusion based on weights (wts) or activations (acts).
-        'act_num_samples': 200, # number of samples to compute activation stats 
-        'skip_last_layer': True, # skip the last layer of the model
+        'act_num_samples': 200, # number of samples to compute activation stats
+        'skip_last_layer': False, # skip the last layer of the model
         'skip_last_layer_type': 'average', # second, average
         
         # OT alignment tunable parameters (default values are ok)

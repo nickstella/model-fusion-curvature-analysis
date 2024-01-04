@@ -67,9 +67,6 @@ def get_activation_distance_stats(activations_0, activations_1, layer_name=""):
 def eval_aligned_model(model, new_params, datamodule_type, datamodule_hparams):
 
     updated_model = copy.deepcopy(model)
-    print("HERE")
-    print(datamodule_hparams)
-    print(datamodule_hparams['batch_size'])
 
     layer_idx = 0
     model_state_dict = model.state_dict()
@@ -96,7 +93,7 @@ def eval_aligned_model(model, new_params, datamodule_type, datamodule_hparams):
 
     trainer.test(updated_model, dataloaders=datamodule.test_dataloader())
     wandb.finish()
-
+    
     return updated_model
 
 def check_activation_sizes(args, acts0, acts1):
