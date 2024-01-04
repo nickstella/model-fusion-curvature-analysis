@@ -145,7 +145,7 @@ def get_aligned_layers_wts(args, networks, datamodule_type, datamodule_hparams, 
                 # print("Simple averaging of last layer weights. NO transport map needs to be computed")
                 avg_aligned_layers.append((aligned_wt + fc_layer1_weight)/2)
                 
-                return avg_aligned_layers
+                return avg_aligned_layers, None
 
         if args.importance is None or (idx == num_layers -1):
             mu = helpers.get_histogram(args, 0, mu_cardinality, layer0_name)
@@ -254,14 +254,16 @@ def get_aligned_layers_acts(args, networks, activations, datamodule_type, datamo
     networks_named_params = list(zip(networks[0].named_parameters(), networks[1].named_parameters()))
     idx = 0
     incoming_layer_aligned = True # for input
+    
+    print("INIT")
     while idx < num_layers:
         ((layer0_name, fc_layer0_weight), (layer1_name, fc_layer1_weight)) = networks_named_params[idx]
-        # print("NUM LAYERS: ", num_layers)
-        # print("\n--------------- At layer index {} ------------- \n ".format(idx))
+        print("NUM LAYERS: ", num_layers)
+        print("\n--------------- At layer index {} ------------- \n ".format(idx))
         # layer shape is out x in
         # assert fc_layer0_weight.shape == fc_layer1_weight.shape
         assert helpers.check_layer_sizes(args, idx, fc_layer0_weight.shape, fc_layer1_weight.shape, num_layers)
-        # print("Previous layer shape is ", previous_layer_shape)
+        print("Previous layer shape is ", previous_layer_shape)
         previous_layer_shape = fc_layer1_weight.shape
 
         # will have shape layer_size x act_num_samples
@@ -387,7 +389,7 @@ def get_aligned_layers_acts(args, networks, activations, datamodule_type, datamo
                 # print("Just giving the weights of the second model. NO transport map needs to be computed")
                 avg_aligned_layers.append(fc_layer1_weight)
 
-            return avg_aligned_layers
+            return avg_aligned_layers, None
 
         # print("ground metric (m0) is ", M0)
 
@@ -437,11 +439,11 @@ def get_aligned_layers_acts(args, networks, activations, datamodule_type, datamo
         cpuM = None
 
         idx += 1
-
+    print("EXIT")
+    
     if args.eval_aligned:        
         aligned_base_model = helpers.eval_aligned_model(networks[0], model0_aligned_layers, datamodule_type, datamodule_hparams)
 
-    print = aligned_base_model
     
     return avg_aligned_layers, aligned_base_model
 
