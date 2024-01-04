@@ -15,7 +15,7 @@ def run_pyhessian(
         model: BaseModel
     ):
 
-    datamodule_hparams = {'batch_size': 51, 'data_dir': BASE_DATA_DIR}
+    datamodule_hparams = {'batch_size': 512, 'data_dir': BASE_DATA_DIR}
     datamodule = datamodule_type.get_data_module(**datamodule_hparams)
     datamodule.prepare_data()
     datamodule.setup('fit')
