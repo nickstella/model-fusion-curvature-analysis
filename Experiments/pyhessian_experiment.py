@@ -1,14 +1,10 @@
-import wandb
-from pathlib import Path
-import wandb
 from model_fusion.datasets import DataModuleType
-from model_fusion.models import ModelType
 from model_fusion.models.lightning import BaseModel
 from model_fusion.config import BASE_DATA_DIR, CHECKPOINT_DIR
-import model_fusion.lmc_utils as lmc
 from pyhessian import hessian
-import torch
+from pyhessian import density_plot
 import torch.nn as nn
+import numpy as np
 
 def run_pyhessian(
         datamodule_type: DataModuleType, 
@@ -36,8 +32,16 @@ def run_pyhessian(
                            dataloader=hessian_dataloader,
                            cuda=True)
     
-    return hessian_comp
+    top_eigenvalues, top_eigenvector = hessian_comp.eigenvalues()
+    print("The top Hessian eigenvalue of this model is %.4f"%top_eigenvalues[-1])
 
+    trace = hessian_comp.trace()
+
+    print('\n***Trace: ', np.mean(trace))
+
+    density_eigen, density_weight = hessian_comp.density()
+
+    density_plot.get_esd_plot(density_eigen, density_weight)
     
 
 if __name__ == '__main__':
