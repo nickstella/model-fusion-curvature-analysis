@@ -16,12 +16,10 @@ def train_vgg11_cifar10(min_epochs=50, max_epochs=200, batch_size=32, model_seed
     model_type = ModelType.VGG11
     model_hparams = {'num_classes': 10, 'num_channels': 3, 'bias': False}
     lr = 0.1 * (batch_size / 32) * 0.25
-    if batch_size == 32:
-        lr = 0.025
     if batch_size == 128:
+        lr = 0.05
+    elif batch_size == 512:
         lr = 0.1
-    if batch_size == 512:
-        lr = 0.2
     lightning_params = {'optimizer': 'sgd', 'lr': lr, 'momentum': 0.9, 'weight_decay': 0.0001, 'lr_scheduler': 'plateau', 'lr_decay_factor': 0.1, 'lr_monitor_metric': 'val_loss', 'model_seed': model_seed, 'data_seed': data_seed}
 
     wandb_tags = ['VGG-11', 'CIFAR_10', f"Batch size {batch_size}"]

@@ -23,10 +23,16 @@ def get_prediction_ensemble(models: List[nn.Module], weights: torch.Tensor = Non
 def evaluate_prediction_ensemble(ensembled_model, test_loader, loss_module): 
     
     test_loss = 0
+    correct = 0
+    total = 0
 
     for data, target in test_loader:
         output = ensembled_model(data)
         test_loss += loss_module(output, target).item()
+        _, predicted = output.max(1)
+        correct += predicted.eq(target).sum().item()
+        total += target.size(0)
 
     test_loss = test_loss / len(test_loader)
-    print('Test set: Average loss: {:.4f}'.format(test_loss))
+    accuracy = correct / total * 100
+    print('Test set: Average loss: {:.4f}, Accuracy: {:.2f}%'.format(test_loss, accuracy))

@@ -11,14 +11,14 @@ import model_fusion.ot_fusion.wasserstein_helpers as helpers
 def get_otfused_model(args, networks, activations, datamodule_type, datamodule_hparams):
 
     if args.geom_ensemble_type == 'wts':
-        avg_aligned_layers = get_aligned_layers_wts(args, networks, datamodule_type, datamodule_hparams)
+        avg_aligned_layers, aligned_base_model  = get_aligned_layers_wts(args, networks, datamodule_type, datamodule_hparams)
     
     elif args.geom_ensemble_type == 'acts':
-        avg_aligned_layers = get_aligned_layers_acts(args, networks, activations, datamodule_type, datamodule_hparams)
+        avg_aligned_layers, aligned_base_model = get_aligned_layers_acts(args, networks, activations, datamodule_type, datamodule_hparams)
         
     otfused_model = helpers.get_network_from_param_list(networks[0], avg_aligned_layers)
 
-    return otfused_model
+    return otfused_model, aligned_base_model
 
 def get_aligned_layers_wts(args, networks, datamodule_type, datamodule_hparams, eps=1e-7):
     '''
@@ -145,7 +145,7 @@ def get_aligned_layers_wts(args, networks, datamodule_type, datamodule_hparams, 
                 # print("Simple averaging of last layer weights. NO transport map needs to be computed")
                 avg_aligned_layers.append((aligned_wt + fc_layer1_weight)/2)
                 
-                return avg_aligned_layers
+                return avg_aligned_layers, None
 
         if args.importance is None or (idx == num_layers -1):
             mu = helpers.get_histogram(args, 0, mu_cardinality, layer0_name)
@@ -165,7 +165,7 @@ def get_aligned_layers_wts(args, networks, datamodule_type, datamodule_hparams, 
         else:
             T = ot.bregman.sinkhorn(mu, nu, cpuM, reg=args.reg)
 
-        T_var = torch.from_numpy(T).float()
+        T_var = torch.from_numpy(T).to(networks[0].device).float()
         print("the transport map is ", T_var)
 
         if args.correction:
@@ -215,9 +215,11 @@ def get_aligned_layers_wts(args, networks, datamodule_type, datamodule_hparams, 
                 t_fc0_model = t_fc0_model.view(layer_shape)
             
             model0_aligned_layers.append(t_fc0_model)
-            helpers.eval_aligned_model(networks[0], model0_aligned_layers, datamodule_type, datamodule_hparams)
+    
+    if args.eval_aligned:        
+        aligned_base_model = helpers.eval_aligned_model(networks[0], model0_aligned_layers, datamodule_type, datamodule_hparams)
 
-    return avg_aligned_layers
+    return avg_aligned_layers, aligned_base_model 
 
 def get_aligned_layers_acts(args, networks, activations, datamodule_type, datamodule_hparams, eps=1e-7):
     '''
@@ -252,14 +254,16 @@ def get_aligned_layers_acts(args, networks, activations, datamodule_type, datamo
     networks_named_params = list(zip(networks[0].named_parameters(), networks[1].named_parameters()))
     idx = 0
     incoming_layer_aligned = True # for input
+    
+    print("INIT")
     while idx < num_layers:
         ((layer0_name, fc_layer0_weight), (layer1_name, fc_layer1_weight)) = networks_named_params[idx]
-        # print("NUM LAYERS: ", num_layers)
-        # print("\n--------------- At layer index {} ------------- \n ".format(idx))
+        print("NUM LAYERS: ", num_layers)
+        print("\n--------------- At layer index {} ------------- \n ".format(idx))
         # layer shape is out x in
         # assert fc_layer0_weight.shape == fc_layer1_weight.shape
         assert helpers.check_layer_sizes(args, idx, fc_layer0_weight.shape, fc_layer1_weight.shape, num_layers)
-        # print("Previous layer shape is ", previous_layer_shape)
+        print("Previous layer shape is ", previous_layer_shape)
         previous_layer_shape = fc_layer1_weight.shape
 
         # will have shape layer_size x act_num_samples
@@ -385,12 +389,12 @@ def get_aligned_layers_acts(args, networks, activations, datamodule_type, datamo
                 # print("Just giving the weights of the second model. NO transport map needs to be computed")
                 avg_aligned_layers.append(fc_layer1_weight)
 
-            return avg_aligned_layers
+            return avg_aligned_layers, None
 
         # print("ground metric (m0) is ", M0)
 
-        T_var = helpers.get_current_layer_transport_map(args, mu, nu, M0, idx=idx, layer_shape=layer_shape, eps=eps, layer_name=layer0_name)
-        T_var, marginals = helpers.compute_marginals(args, T_var, eps=eps)
+        T_var = helpers.get_current_layer_transport_map(args, mu, nu, M0, idx=idx, layer_shape=layer_shape, eps=eps, layer_name=layer0_name,device=networks[0].device)
+        T_var, marginals = helpers.compute_marginals(args, T_var, eps=eps,device=networks[0].device)
 
         print("the transport map is ", T_var)
         # print("Ratio of trace to the matrix sum: ", torch.trace(T_var) / torch.sum(T_var))
@@ -419,7 +423,6 @@ def get_aligned_layers_acts(args, networks, activations, datamodule_type, datamo
                 t_fc0_model = t_fc0_model.view(layer_shape)
             
             model0_aligned_layers.append(t_fc0_model)
-            helpers.eval_aligned_model(args, networks[0], model0_aligned_layers, datamodule_type, datamodule_hparams)
             
         incoming_layer_aligned = False
         next_aligned_wt_reshaped = None
@@ -436,6 +439,11 @@ def get_aligned_layers_acts(args, networks, activations, datamodule_type, datamo
         cpuM = None
 
         idx += 1
+    print("EXIT")
     
-    return avg_aligned_layers
+    if args.eval_aligned:        
+        aligned_base_model = helpers.eval_aligned_model(networks[0], model0_aligned_layers, datamodule_type, datamodule_hparams)
+
+    
+    return avg_aligned_layers, aligned_base_model
 

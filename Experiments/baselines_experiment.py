@@ -55,6 +55,8 @@ def run_baselines(
     trainer.test(vanilla_averaging_model, dataloaders=datamodule.test_dataloader())
 
     wandb.finish()
+
+    return vanilla_averaging_model
     
 
 if __name__ == '__main__':

@@ -23,6 +23,8 @@ def run_otfusion(
 
     print("------- Setting up parameters -------")
     args = parameters.get_parameters()
+
+    print(datamodule_hparams)
     
     print("The parameters are: \n", args)
 
@@ -30,7 +32,7 @@ def run_otfusion(
 
     print("------- OT model fusion -------")
     activations = compute_activations.get_model_activations(args, models, datamodule_type)
-    otfused_model = wasserstein_ensemble.get_otfused_model(args, models, activations, datamodule_type, datamodule_hparams)
+    otfused_model, aligned_base_model = wasserstein_ensemble.get_otfused_model(args, models, activations, datamodule_type, datamodule_hparams)
 
     print("------- Evaluating ot fusion model -------")
     experiment_name = f"{model_type.value}_{datamodule_type.value}_batch_size_{batch_size}_{wandb_tag}"
@@ -43,8 +45,12 @@ def run_otfusion(
     
     trainer.test(otfused_model, dataloaders=datamodule.test_dataloader())
 
+    checkpoint_callback = trainer.checkpoint_callback
+    checkpoint_callback.on_validation_end(trainer, otfused_model) 
+
     wandb.finish()
     
+    return otfused_model, aligned_base_model
 
 if __name__ == '__main__':
     run_otfusion()

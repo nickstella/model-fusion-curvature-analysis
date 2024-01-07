@@ -83,8 +83,8 @@ def eval_aligned_model(model, new_params, datamodule_type, datamodule_hparams):
     updated_model.load_state_dict(model_state_dict)
 
     wandb_tag = f"aligned_modelA"
-    experiment_name = f"{updated_model.model_type.value}_{datamodule_type.value}_batch_size_{datamodule_hparams.batch_size}_{wandb_tag}"
-    wandb_tags = [f"{updated_model.model_type.value}", f"{datamodule_type.value}", f"Batch size {datamodule_hparams.batch_size}", f"{wandb_tag}"]
+    experiment_name = f"{updated_model.model_type.value}_{datamodule_type.value}_batch_size_{datamodule_hparams['batch_size']}_{wandb_tag}"
+    wandb_tags = [f"{updated_model.model_type.value}", f"{datamodule_type.value}", f"Batch size {datamodule_hparams['batch_size']}", f"{wandb_tag}"]
 
     datamodule, trainer = setup_testing(experiment_name, updated_model.model_type, updated_model.model_hparams, datamodule_type, datamodule_hparams, wandb_tags)
 
@@ -93,7 +93,7 @@ def eval_aligned_model(model, new_params, datamodule_type, datamodule_hparams):
 
     trainer.test(updated_model, dataloaders=datamodule.test_dataloader())
     wandb.finish()
-
+    
     return updated_model
 
 def check_activation_sizes(args, acts0, acts1):
@@ -162,12 +162,12 @@ def check_layer_sizes(args, layer_idx, shape1, shape2, num_layers):
     else: 
         raise ValueError(f"Different layer widths: {shape1} and {shape2}")
 
-def compute_marginals(args, T_var, eps=1e-7):
+def compute_marginals(args, T_var, eps=1e-7,device='cpu'):
     if args.correction:
         if not args.proper_marginals:
             
             # think of it as m x 1, scaling weights for m linear combinations of points in X
-            marginals = torch.ones(T_var.shape)
+            marginals = torch.ones(T_var.shape).to(device)
 
             marginals = torch.matmul(T_var, marginals)
             marginals = 1 / (marginals + eps)
@@ -197,7 +197,7 @@ def compute_marginals(args, T_var, eps=1e-7):
 
     return T_var, marginals
 
-def get_current_layer_transport_map(args, mu, nu, M0, idx, layer_shape, eps=1e-7, layer_name=None):
+def get_current_layer_transport_map(args, mu, nu, M0, idx, layer_shape, eps=1e-7, layer_name=None,device='cpu'):
 
     cpuM = M0.data.cpu().numpy()
     
@@ -216,7 +216,7 @@ def get_current_layer_transport_map(args, mu, nu, M0, idx, layer_shape, eps=1e-7
 
     sanity_check_tmap(T)
 
-    T_var = torch.from_numpy(T).float()
+    T_var = torch.from_numpy(T).to(device).float()
 
     print(
         "Tmap stats (before correction) \n: For layer {}, frobenius norm from the joe's transport map is {}".format(
