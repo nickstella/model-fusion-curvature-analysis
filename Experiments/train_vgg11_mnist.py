@@ -17,6 +17,10 @@ def train_vgg11_mnist(min_epochs=20, max_epochs=100, batch_size=32, model_seed=4
     model_type = ModelType.VGG11
     model_hparams = {'num_classes': 10, 'num_channels': 1, 'bias': False}
     lr = 0.1 * (batch_size / 32) * 0.25
+    if batch_size == 128:
+        lr = 0.05
+    if batch_size == 512:
+        lr = 0.01
     lightning_params = {'optimizer': 'sgd', 'lr': lr, 'momentum': 0.9, 'weight_decay': 0.0001, 'lr_scheduler': 'plateau', 'lr_decay_factor': 0.1, 'lr_monitor_metric': 'val_loss', 'model_seed': model_seed, 'data_seed': data_seed}
 
     wandb_tags = ['VGG-11', 'MNIST', f"Batch size {batch_size}"]

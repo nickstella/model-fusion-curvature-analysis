@@ -53,9 +53,15 @@ if __name__ == '__main__':
                     min_epochs=min_epochs_cifar, max_epochs=max_epochs_cifar,
                     batch_size=batch_size, model_seed=model_seed, data_seed=data_seed)
 
-    if IS_FILIPPO:
+    if not IS_FILIPPO:
         for batch_size in batch_sizes[1:]:
             for model_seed, data_seed in seeds:
                 train_vgg11_cifar10(
                     min_epochs=min_epochs_cifar, max_epochs=max_epochs_cifar,
                     batch_size=batch_size, model_seed=model_seed, data_seed=data_seed)
+
+    for batch_size in batch_sizes:
+        for model_seed, data_seed in seeds:
+            train_resnet18_cifar100(
+                min_epochs=min_epochs_cifar, max_epochs=max_epochs_cifar,
+                batch_size=batch_size, model_seed=model_seed, data_seed=data_seed)
