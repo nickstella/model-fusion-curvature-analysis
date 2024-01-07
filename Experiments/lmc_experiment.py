@@ -6,6 +6,7 @@ from model_fusion.models import ModelType
 from model_fusion.models.lightning import BaseModel
 from model_fusion.config import BASE_DATA_DIR, CHECKPOINT_DIR
 import model_fusion.lmc_utils as lmc
+import torch
 
 def run_lmc(
         datamodule_type: DataModuleType, 
@@ -13,6 +14,9 @@ def run_lmc(
         modelB: BaseModel,
         granularity: int = 20,
     ):
+
+    modelA = modelA.to('cuda') if torch.cuda.is_available() else modelA
+    modelB = modelB.to('cuda') if torch.cuda.is_available() else modelB
 
     datamodule_hparams = {'batch_size': 1024, 'data_dir': BASE_DATA_DIR}
     datamodule = datamodule_type.get_data_module(**datamodule_hparams)

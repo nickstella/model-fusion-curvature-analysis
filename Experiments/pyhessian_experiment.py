@@ -19,11 +19,12 @@ def run_pyhessian(
     datamodule_hparams = {'batch_size': 32, 'data_dir': BASE_DATA_DIR}
     datamodule = datamodule_type.get_data_module(**datamodule_hparams)
     datamodule.prepare_data()
-    datamodule.setup('fit')
+    datamodule.setup('test')
+    dataloader = datamodule.test_dataloader()
     
     hessian_dataloader = []
-    for i, (inputs, labels) in enumerate(datamodule.train_dataloader()):
-        hessian_dataloader.append((inputs.cuda(), labels.cuda()))
+    for i, (inputs, labels) in enumerate(dataloader):
+        hessian_dataloader.append((inputs.to(model.device), labels.to(model.device)))
         if i ==  num_batches:
             break
 

@@ -45,6 +45,9 @@ def run_otfusion(
     
     trainer.test(otfused_model, dataloaders=datamodule.test_dataloader())
 
+    checkpoint_callback = trainer.checkpoint_callback
+    checkpoint_callback.on_validation_end(trainer, otfused_model) 
+
     wandb.finish()
     
     return otfused_model, aligned_base_model

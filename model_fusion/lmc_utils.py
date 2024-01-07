@@ -117,12 +117,12 @@ def compute_losses_and_barrier(model1, model2, datamodule, granularity = 20):
     loss_model2 = compute_loss(model2, datamodule)
 
     differences[0] = 0
-    print("Alpha: 0.00 (model 2), Train average loss: {:.2f}".format(loss_model2), "Train barrier: ", 0)
+    print("Alpha: 0.00 (model 2), Train average loss: {:.5f}".format(loss_model2), "Train barrier: ", 0)
           
     loss_model1 = compute_loss(model1, datamodule)
 
     differences[-1] = 0
-    print("Alpha: 1.00 (model 1), Train average loss: {:.2f}".format(loss_model1), "Train barrier: ", 0)
+    print("Alpha: 1.00 (model 1), Train average loss: {:.5f}".format(loss_model1), "Train barrier: ", 0)
     
     # Iterate over the linear path and compute the maximum loss
     for i in range(1, granularity - 1):
