@@ -1,3 +1,8 @@
+'''
+source: https://github.com/ishapira1/LinearModeConnectivity/tree/master
+'''
+
+
 import wandb
 from model_fusion.train import setup_training
 from model_fusion.datasets import DataModuleType
@@ -75,6 +80,8 @@ def compute_loss(model,datamodule):
         average_loss (float): The average training loss.
     """
     # Initialize a variable to accumulate the training loss
+
+    model = model.to('cuda') if torch.cuda.is_available() else model
     total_loss = 0.0
 
     # Iterate over the training data and compute loss

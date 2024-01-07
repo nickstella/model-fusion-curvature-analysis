@@ -19,8 +19,8 @@ def run_pyhessian(
     datamodule_hparams = {'batch_size': 32, 'data_dir': BASE_DATA_DIR}
     datamodule = datamodule_type.get_data_module(**datamodule_hparams)
     datamodule.prepare_data()
-    datamodule.setup('test')
-    dataloader = datamodule.test_dataloader()
+    datamodule.setup('fit')
+    dataloader = datamodule.train_dataloader()
     
     hessian_dataloader = []
     for i, (inputs, labels) in enumerate(dataloader):
