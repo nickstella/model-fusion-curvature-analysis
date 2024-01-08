@@ -14,7 +14,14 @@ def train_resnet18_mnist(min_epochs=20, max_epochs=100, batch_size=32, model_see
 
     model_type = ModelType.RESNET18
     model_hparams = {'num_classes': 10, 'num_channels': 1, 'bias': False}
-    lr = 0.1 * (batch_size / 32) * 0.25
+
+    if batch_size == 128:
+        lr = 0.01
+    elif batch_size == 512:
+        lr = 0.04
+    else:
+        lr = 0.1 * (batch_size / 32) * 0.25
+
     lightning_params = {'optimizer': 'sgd', 'lr': lr, 'momentum': 0.9, 'weight_decay': 0.0001, 'lr_scheduler': 'plateau', 'lr_decay_factor': 0.1, 'lr_monitor_metric': 'val_loss', 'model_seed': model_seed, 'data_seed': data_seed}
 
     wandb_tags = ['RESNET-18', 'MNIST', f"Batch size {batch_size}"]

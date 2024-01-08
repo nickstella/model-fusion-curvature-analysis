@@ -68,6 +68,7 @@ class BaseModel(lightning.LightningModule):
             raise ValueError(f'Optimizer {optimizer} not supported')
 
         if 'lr_scheduler' not in self.lightning_params:
+            print("No LR scheduler specified")
             return optimizer
         if self.lightning_params['lr_scheduler'] == 'step':
             scheduler = self.configure_step_lr(optimizer)
@@ -83,6 +84,7 @@ class BaseModel(lightning.LightningModule):
         lr = self.lightning_params.get('lr', 1e-3)
         weight_decay = self.lightning_params.get('weight_decay', 0)
 
+        print(f"Using Adam optimizer with lr={lr} and weight_decay={weight_decay}")
         return torch.optim.Adam(self.parameters(), lr=lr, weight_decay=weight_decay)
 
     def configure_sgd(self):
@@ -91,6 +93,7 @@ class BaseModel(lightning.LightningModule):
         weight_decay = self.lightning_params.get('weight_decay', 0)
         nesterov = self.lightning_params.get('nesterov', False)
 
+        print(f"Using SGD optimizer with lr={lr}, momentum={momentum}, weight_decay={weight_decay}, nesterov={nesterov}")
         return torch.optim.SGD(self.parameters(), lr=lr, momentum=momentum, weight_decay=weight_decay, nesterov=nesterov)
 
     def configure_step_lr(self, optimizer):
@@ -99,6 +102,7 @@ class BaseModel(lightning.LightningModule):
             raise ValueError('step_size size must be specified for StepLR')
         lr_decay_factor = self.lightning_params.get('lr_decay_factor', 0.1)
 
+        print(f"Using StepLR with step_size={step_size} and lr_decay_factor={lr_decay_factor}")
         return torch.optim.lr_scheduler.StepLR(optimizer, step_size=step_size, gamma=lr_decay_factor)
 
     def configure_multistep_lr(self, optimizer):
@@ -107,12 +111,15 @@ class BaseModel(lightning.LightningModule):
             raise ValueError('lr_decay_epochs must be specified for MultiStepLR')
         lr_decay_factor = self.lightning_params.get('lr_decay_factor', 0.1)
 
+        print(f"Using MultiStepLR with lr_decay_epochs={lr_decay_epochs} and lr_decay_factor={lr_decay_factor}")
         return torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=lr_decay_epochs, gamma=lr_decay_factor)
 
     def configure_plateau_lr(self, optimizer):
         lr_decay_factor = self.lightning_params.get('lr_decay_factor', 0.1)
         scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor=lr_decay_factor, patience=7, verbose=True)
         lr_monitor_metric = self.lightning_params.get('lr_monitor_metric', 'val_loss')
+
+        print(f"Using ReduceLROnPlateau with lr_decay_factor={lr_decay_factor} and lr_monitor_metric={lr_monitor_metric}")
         return {
             'scheduler': scheduler,
             'monitor': lr_monitor_metric
