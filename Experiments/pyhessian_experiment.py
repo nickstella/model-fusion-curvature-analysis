@@ -16,7 +16,7 @@ def run_pyhessian(
         figure_name: str = 'example.pdf'
     ):
 
-    datamodule_hparams = {'batch_size': 32, 'data_dir': BASE_DATA_DIR}
+    datamodule_hparams = {'batch_size': 128, 'data_dir': BASE_DATA_DIR}
     datamodule = datamodule_type.get_data_module(**datamodule_hparams)
     datamodule.prepare_data()
     datamodule.setup('fit')
