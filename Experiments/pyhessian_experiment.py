@@ -38,11 +38,11 @@ def run_pyhessian(
     hessian_comp = hessian(model, criterion, dataloader=hessian_dataloader, cuda=True)
 
     if compute_top_eigenvalues:
-        top_eigenvalues, _ = hessian_comp.eigenvalues(top_n=1)
+        top_eigenvalues, _ = hessian_comp.eigenvalues(maxIter=100, tol=1e-3, top_n=1)
         print("The top Hessian eigenvalue of this model is %.4f"%top_eigenvalues[-1])
 
     if compute_trace:
-        trace = hessian_comp.trace()
+        trace = hessian_comp.trace( maxIter=200, tol=1e-3)
         print('\n***Trace: ', np.mean(trace))
 
     if compute_density:
