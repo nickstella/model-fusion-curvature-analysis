@@ -16,7 +16,7 @@ def get_base_args():
         'eval_aligned': True, # evaluate aligned parent model 0 aligned wrt to parent model 1
         'num_models': 2,
         'width_ratio': 1, # ratio of the widths of the hidden layers between the two models
-        'handle_skips': True, # handle shortcut skips in resnet which decrease dimension
+        'handle_skips': True, # handle shortcut skips in resnet which decrease dimension          #I PUT FALSE FOR VGG
         'exact': True, # compute exact optimal transport (True = emd, False = sinkhorn)
         'activation_seed': 21, # seed for computing activations
         'activation_histograms': True,
@@ -25,8 +25,8 @@ def get_base_args():
         'same_model': False, # if the two models are the same
         
         # OT alignment settings 
-        'geom_ensemble_type': 'acts', # wts, acts - fusion based on weights (wts) or activations (acts).
-        'act_num_samples': 200, # number of samples to compute activation stats
+        'geom_ensemble_type': 'acts', # wts, acts - fusion based on weights (wts) or activations (acts).                 
+        'act_num_samples': 200, # number of samples to compute activation stats                                           #I PUT 75 FOR VGG
         'skip_last_layer': False, # skip the last layer of the model
         'skip_last_layer_type': 'average', # second, average
         
@@ -44,7 +44,6 @@ def get_base_args():
         'importance': None, # l1, l2, l11, l12 - importance measure to use for building probab mass
         'proper_marginals': False, # consider the marginals of transport map properly (connected with importance)
         'not_squared': True, # dont square the ground metric
-        'ground_metric_eff': False, # memory efficient calculation of ground metric
         'dist_normalize': False, # normalize distances by act num samples (connected with ground_metric_eff)
         'clip_gm': False, # to clip ground metric
         'clip_min': 0, # Value for clip-min for gm

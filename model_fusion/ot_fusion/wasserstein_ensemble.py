@@ -171,12 +171,12 @@ def get_aligned_layers_wts(args, networks, datamodule_type, datamodule_hparams, 
         if args.correction:
             if not args.proper_marginals:
                 # think of it as m x 1, scaling weights for m linear combinations of points in X
-                marginals = torch.ones(T_var.shape[0]) / T_var.shape[0]
+                marginals = torch.ones(T_var.shape[0]).to(networks[0].device) / T_var.shape[0]
                 marginals = torch.diag(1.0/(marginals + eps))  # take inverse
                 T_var = torch.matmul(T_var, marginals)
             
             else:
-                marginals_beta = T_var.t() @ torch.ones(T_var.shape[0], dtype=T_var.dtype)
+                marginals_beta = T_var.t() @ torch.ones(T_var.shape[0], dtype=T_var.dtype).to(networks[0].device)
                 marginals = (1 / (marginals_beta + eps))
                 # print("shape of inverse marginals beta is ", marginals_beta.shape)
                 # print("inverse marginals beta is ", marginals_beta)
@@ -215,6 +215,16 @@ def get_aligned_layers_wts(args, networks, datamodule_type, datamodule_hparams, 
                 t_fc0_model = t_fc0_model.view(layer_shape)
             
             model0_aligned_layers.append(t_fc0_model)
+
+        mu = None
+        nu = None
+        fc_layer0_weight_data = None
+        fc_layer1_weight_data = None
+        M = None
+        cpuM = None
+
+        idx += 1
+    print("EXIT")
     
     if args.eval_aligned:        
         aligned_base_model = helpers.eval_aligned_model(networks[0], model0_aligned_layers, datamodule_type, datamodule_hparams)
@@ -233,7 +243,9 @@ def get_aligned_layers_acts(args, networks, activations, datamodule_type, datamo
     Otherwise assumes uniform distribution over neurons in a layer.
     :return: list of layer weights 'wassersteinized'
     '''
-
+    
+    if networks[0].type == ModelType.RESNET18:
+        args.handle_skips = True
 
     avg_aligned_layers = []
     T_var = None

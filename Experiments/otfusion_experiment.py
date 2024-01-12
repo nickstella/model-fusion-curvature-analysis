@@ -9,22 +9,30 @@ from model_fusion.models import ModelType
 from model_fusion.models.lightning import BaseModel
 from model_fusion.config import CHECKPOINT_DIR
 from model_fusion.ot_fusion import compute_activations, wasserstein_ensemble
+from lightning import seed_everything
 
 def run_otfusion(
-        batch_size: int, 
-        datamodule_type: DataModuleType, 
-        datamodule_hparams: dict, 
-        model_type: ModelType, 
+        batch_size: int,
+        datamodule_type: DataModuleType,
+        datamodule_hparams: dict,
+        model_type: ModelType,
         model_hparams: dict,
         modelA: BaseModel,
         modelB: BaseModel,
-        wandb_tag: str
+        wandb_tag: str,
+        is_vgg: bool = False
     ):
+    seed_everything(42, workers=True)
 
     print("------- Setting up parameters -------")
     args = parameters.get_parameters()
 
     print(datamodule_hparams)
+
+    if is_vgg:
+        args.handle_skips = False
+        args.acts_num_samples = 75
+
     
     print("The parameters are: \n", args)
 

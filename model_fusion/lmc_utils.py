@@ -10,6 +10,7 @@ from model_fusion.models import ModelType
 import torch
 import numpy as np
 import copy
+from lightning import seed_everything
 
 
 def get_network_parameters(model):
@@ -80,6 +81,7 @@ def compute_loss(model,datamodule):
         average_loss (float): The average training loss.
     """
     # Initialize a variable to accumulate the training loss
+    seed_everything(42, workers=True)  
 
     model = model.to('cuda') if torch.cuda.is_available() else model
     total_loss = 0.0
