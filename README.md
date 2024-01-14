@@ -4,13 +4,13 @@ In this repository you will find the code and experiments used in our paper.
 
 ## Setup
 
-Step 1. Create a virtual environment
+Step 1. Create a virtual environment and activate it
 `python -m venv .venv`
 
 Step 2. Install the Python requirements
 `pip install -r requirements.txt`
 
-Step 3. Install the repo as a package
+Step 3. Install the repository as a package
 `pip install -e .`
 
 ## Experiments

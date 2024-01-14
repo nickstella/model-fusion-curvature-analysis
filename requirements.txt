@@ -22,3 +22,6 @@ ipykernel
 
 # OTFusion
 POT
+
+# Visualisation
+matplotlib
