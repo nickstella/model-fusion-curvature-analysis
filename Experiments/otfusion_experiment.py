@@ -29,11 +29,10 @@ def run_otfusion(
 
     print(datamodule_hparams)
 
-    if is_vgg:
+    if model_type == ModelType.VGG11:
         args.handle_skips = False
         args.acts_num_samples = 75
 
-    
     print("The parameters are: \n", args)
 
     models = [modelA, modelB]
@@ -45,19 +44,19 @@ def run_otfusion(
     print("------- Evaluating ot fusion model -------")
     experiment_name = f"{model_type.value}_{datamodule_type.value}_batch_size_{batch_size}_{wandb_tag}"
     wandb_tags = [f"{model_type.value}", f"{datamodule_type.value}", f"Batch size {batch_size}", f"{wandb_tag}"]
-    
+
     datamodule, trainer = setup_testing(experiment_name, model_type, model_hparams, datamodule_type, datamodule_hparams, wandb_tags)
 
     datamodule.prepare_data()
     datamodule.setup('test')
-    
+
     trainer.test(otfused_model, dataloaders=datamodule.test_dataloader())
 
     checkpoint_callback = trainer.checkpoint_callback
-    checkpoint_callback.on_validation_end(trainer, otfused_model) 
+    checkpoint_callback.on_validation_end(trainer, otfused_model)
 
     wandb.finish()
-    
+
     return otfused_model, aligned_base_model
 
 if __name__ == '__main__':
