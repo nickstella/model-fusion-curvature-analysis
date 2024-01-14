@@ -1,3 +1,4 @@
+import torch
 from model_fusion.datasets import DataModuleType
 from model_fusion.models.lightning import BaseModel
 from model_fusion.config import BASE_DATA_DIR, CHECKPOINT_DIR
@@ -32,7 +33,7 @@ def run_pyhessian(
 
     criterion = nn.CrossEntropyLoss()
 
-    model = model.cuda()
+    model = model.to('cuda') if torch.cuda.is_available() else model
     model.eval()
 
     hessian_comp = hessian(model, criterion, dataloader=hessian_dataloader, cuda=True)
