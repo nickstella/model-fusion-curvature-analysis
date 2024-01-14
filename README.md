@@ -18,3 +18,11 @@ Step 3. Install the repository as a package
 The code for running our experiments, along with the experiment configurations, can be found in `./Notebooks/experiments.ipynb`. To select which configuration to use, set `experiment_config` to the appropriate config variable, as specified in the notebook.
 
 Additionally, we provide the code that we used to train the parent models. The script to train all models can be found in `./Experiments/run_all_training_scripts.py`.
+
+## Repository structure
+
+./Experiments/ contains Python scripts for training parent models and applying LMC and PyHessian functions.
+
+./model_fusion/ contains dataset and model descriptions, an implementation of model fusion, tools for LMC and PyHessian. For convenience, it is structured as a Python package.
+
+./Notebooks/ contains the main experiment notebook
