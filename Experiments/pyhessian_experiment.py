@@ -36,7 +36,7 @@ def run_pyhessian(
     model = model.to('cuda') if torch.cuda.is_available() else model
     model.eval()
 
-    hessian_comp = hessian(model, criterion, dataloader=hessian_dataloader, cuda=True)
+    hessian_comp = hessian(model, criterion, dataloader=hessian_dataloader, cuda=torch.cuda.is_available())
 
     if compute_top_eigenvalues:
         top_eigenvalues, _ = hessian_comp.eigenvalues(maxIter=100, tol=1e-3, top_n=1)
