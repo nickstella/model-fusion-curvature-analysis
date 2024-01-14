@@ -20,7 +20,7 @@ def run_otfusion(
         modelA: BaseModel,
         modelB: BaseModel,
         wandb_tag: str,
-        is_vgg: bool = False
+        is_vgg: bool = False  # deprecated
     ):
     seed_everything(42, workers=True)
 
@@ -30,8 +30,9 @@ def run_otfusion(
     print(datamodule_hparams)
 
     if model_type == ModelType.VGG11:
+        print("------- Setting up VGG11 parameters -------")
         args.handle_skips = False
-        args.acts_num_samples = 75
+        args.act_num_samples = 75
 
     print("The parameters are: \n", args)
 
