@@ -1,9 +1,20 @@
-# Model Fusion
+# Exploring the Impact of Batch Size on Model Fusion: Generalization, Curvature, and Optimization Dynamics
+
+In this repository you will find the code and experiments used in our paper.
 
 ## Setup
 
 Step 1. Create a virtual environment
 `python -m venv .venv`
 
-Step 2. Install the repo as a package
+Step 2. Install the Python requirements
+`pip install -r requirements.txt`
+
+Step 3. Install the repo as a package
 `pip install -e .`
+
+## Experiments
+
+The code for running our experiments, along with the experiment configurations, can be found in `./Notebooks/experiments.ipynb`. To select which configuration to use, set `experiment_config` to the appropriate config variable, as specified in the notebook.
+
+Additionally, we provide the code that we used to train the parent models. The script to train all models can be found in `./Experiments/run_all_training_scripts.py`.
