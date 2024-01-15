@@ -1,6 +1,6 @@
 # Exploring the Impact of Batch Size on Model Fusion: Generalization, Curvature, and Optimization Dynamics
 
-In this repository you will find the code and experiments used in our paper.
+In this repository you will find the code and experiments used in our paper, provided in the root directory as "Exploring the Impact of Batch Size on Model Fusion.pdf".
 
 ## Setup
 
