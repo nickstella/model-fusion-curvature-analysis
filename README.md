@@ -7,10 +7,12 @@ In this repository you will find the code and experiments used in our paper.
 Step 1. Create a virtual environment and activate it
 `python -m venv .venv`
 
-Step 2. Install the Python requirements
+Step 2. If you want to use PyTorch with CUDA, install PyTorch by following the instructions from [here](https://pytorch.org/get-started/locally/)
+
+Step 3. Install the Python requirements
 `pip install -r requirements.txt`
 
-Step 3. Install the repository as a package
+Step 4. Install the repository as a package
 `pip install -e .`
 
 ## Experiments
