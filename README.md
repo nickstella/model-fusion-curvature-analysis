@@ -19,6 +19,8 @@ The code for running our experiments, along with the experiment configurations, 
 
 Additionally, we provide the code that we used to train the parent models. The script to train all models can be found in `./Experiments/run_all_training_scripts.py`.
 
+Descriptions and visualizations of training runs can be found [here](https://wandb.ai/model-fusion/Model%20Fusion).
+
 ## Repository structure
 
 ./Experiments/ contains Python scripts for training parent models and applying LMC and PyHessian functions.
